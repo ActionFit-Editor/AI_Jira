@@ -6,9 +6,24 @@ ActionFit AI agents use this package to understand Jira task discovery, issue cr
 
 This package is the first package boundary for Jira-related AI guidance. The Cat Merge Cafe project still keeps the active Jira automation scripts under `Tools/AI/jira/` for compatibility while this package is introduced.
 
+## Install
+
+```json
+{
+  "dependencies": {
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.1"
+  }
+}
+```
+
 ## AI Guide
 
 - Read `AI_GUIDE.md` before changing Jira automation rules, local Jira config behavior, issue lifecycle handling, or Jira REST scripts.
+
+## Legacy Package
+
+- `com.actionfit.ai_guide_jira` was a placeholder guide package and should not be installed together with this package.
+- Use `com.actionfit.ai-jira` as the canonical Jira automation guidance package.
 
 ## Migration Notes
 

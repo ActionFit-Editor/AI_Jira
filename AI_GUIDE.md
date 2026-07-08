@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.0`
+- Current package version at generation time: `1.0.1`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -48,6 +48,7 @@ Read this file when:
 - Existing projects may continue to call `Tools/AI/jira/*.py`.
 - This package owns the portable rules and future package-local implementation.
 - A later migration should add project wrappers or install helpers before moving active scripts out of project-local paths.
+- `com.actionfit.ai_guide_jira` was a placeholder guide package. Treat `com.actionfit.ai-jira` as the canonical Jira automation package and move dependencies, router entries, and documentation references here instead of installing both.
 
 ## Release Notes
 
