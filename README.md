@@ -11,7 +11,7 @@ This package is the first package boundary for Jira-related AI guidance. The Cat
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.1"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.2"
   }
 }
 ```
@@ -19,6 +19,25 @@ This package is the first package boundary for Jira-related AI guidance. The Cat
 ## AI Guide
 
 - Read `AI_GUIDE.md` before changing Jira automation rules, local Jira config behavior, issue lifecycle handling, or Jira REST scripts.
+
+## Personal Jira Credentials
+
+Jira task discovery uses the authenticated Atlassian account. Each developer must use their own Jira account email and API token so `assignee = currentUser()` returns that developer's work.
+
+If the developer already has an API token, set it locally:
+
+```bash
+export JIRA_EMAIL="name@company.com"
+export JIRA_API_TOKEN="your-atlassian-api-token"
+```
+
+If the developer does not have an API token, create one from Atlassian Account security:
+
+https://id.atlassian.com/manage-profile/security/api-tokens
+
+After creating the token, copy it immediately and store it in a password manager. Atlassian does not show the token again after creation. Do not commit the token, paste it into shared chat, or store it in a tracked project file.
+
+Project-local scripts may also read ignored `Tools/AI/jira/config.local.json`, but environment variables are preferred for personal credentials.
 
 ## Legacy Package
 

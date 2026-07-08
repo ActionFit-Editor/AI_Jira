@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.1`
+- Current package version at generation time: `1.0.2`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -37,6 +37,8 @@ Read this file when:
 ## Rules
 
 - Jira credentials, board IDs, real base URLs, status names, and user-specific config must stay in ignored local config files or environment variables.
+- Jira task discovery must use the developer's own Atlassian account email and API token. If credentials are missing, tell the user to either set their existing token as `JIRA_API_TOKEN` or create one from `https://id.atlassian.com/manage-profile/security/api-tokens`, then set `JIRA_EMAIL` and `JIRA_API_TOKEN` locally.
+- Do not ask the user to paste Jira API tokens into shared chat. If setup help is needed, guide them through environment variables or ignored local config only.
 - Default write behavior must remain safe: dry-run enabled unless the user explicitly enables the specific write action.
 - AI-created Jira titles, descriptions, appended requirements, and QA notes must be written in Korean.
 - Do not overwrite full Jira descriptions. Only append confirmed requirements or prepend QA notes when the local config explicitly allows it.
