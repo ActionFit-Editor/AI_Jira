@@ -20,8 +20,15 @@ MonoBehaviour:
   _status: verified
   _description: ActionFit AI agents use this package to understand Jira task discovery,
     issue creation, lifecycle transitions, and safe local Jira configuration.
-  _releaseNote: "- Unity \uC0C1\uB2E8 \uBA54\uB274\uB97C `Tools/Package/AI Jira/...`
-    \uAD6C\uC870\uB85C \uC815\uB9AC\uD588\uC2B5\uB2C8\uB2E4.\n- \uD558\uB2E8 \uAD6C\uBD84\uC120
-    \uC601\uC5ED\uC5D0 `README` \uBA54\uB274\uB97C \uCD94\uAC00\uD574 \uD328\uD0A4\uC9C0
-    README\uC5D0 \uBC14\uB85C \uC811\uADFC\uD560 \uC218 \uC788\uAC8C \uD588\uC2B5\uB2C8\uB2E4."
+  _releaseNote: "- `Tools/AI/jira/create_issue.py`\uAC00 \uC0C8 Jira \uC774\uC288
+    \uC0DD\uC131 \uC2DC \uD604\uC7AC API \uD1A0\uD070 \uC0AC\uC6A9\uC790(`/myself`)\uB97C
+    \uB2F4\uB2F9\uC790\uB85C \uC9C0\uC815\uD558\uB3C4\uB85D \uD588\uC2B5\uB2C8\uB2E4.\n-
+    Jira \uC6CC\uD06C\uD50C\uB85C\uAC00 \uB2E4\uB978 \uCD08\uAE30 \uC0C1\uD0DC\uB85C
+    \uC774\uC288\uB97C \uB9CC\uB4E4\uB354\uB77C\uB3C4 \uC0DD\uC131 \uC9C1\uD6C4 `issue_create.create_status`(\uAE30\uBCF8
+    `todo`) \uC0C1\uD0DC\uB85C \uBCF4\uC815\uD558\uB3C4\uB85D \uD588\uC2B5\uB2C8\uB2E4.\n-
+    `Tools/AI/jira/config.example.json`\uC5D0 `assign_to_current_user`\uC640 `move_to_progress_after_create=false`
+    \uAE30\uBCF8\uAC12\uC744 \uBA85\uC2DC\uD588\uC2B5\uB2C8\uB2E4.\n- README\uC640
+    AI_GUIDE\uC5D0 \uC0C8 \uC774\uC288\uB294 \uAE30\uBCF8\uC801\uC73C\uB85C API \uD1A0\uD070
+    \uC18C\uC720\uC790 \uB2F4\uB2F9, `todo` \uC0C1\uD0DC \uC0DD\uC131\uC774\uB77C\uB294
+    \uC6B4\uC601 \uADDC\uCE59\uC744 \uBB38\uC11C\uD654\uD588\uC2B5\uB2C8\uB2E4."
   _dependenciesOverride: 

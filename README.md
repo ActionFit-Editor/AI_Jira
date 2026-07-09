@@ -11,7 +11,7 @@ This package is the first package boundary for Jira-related AI guidance. The Cat
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.3"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.4"
   }
 }
 ```
@@ -44,6 +44,12 @@ https://id.atlassian.com/manage-profile/security/api-tokens
 After creating the token, copy it immediately and store it in a password manager. Atlassian does not show the token again after creation. Do not commit the token, paste it into shared chat, or store it in a tracked project file.
 
 Project-local scripts may also read ignored `Tools/AI/jira/config.local.json`, but environment variables are preferred for personal credentials.
+
+## Issue Creation Defaults
+
+When `Tools/AI/jira/create_issue.py` creates a Jira issue, the default owner is the authenticated Jira API user. The script resolves `/rest/api/3/myself` and writes that account id to the issue `assignee` field when `issue_create.assign_to_current_user` is true or omitted.
+
+New issues should land in the configured `todo` status by default. If the Jira project workflow creates the issue in another initial status, the create script should immediately transition the issue to `issue_create.create_status`, normally `statuses.todo`, before returning the created issue key. Move issues to `progress` only when implementation actually starts.
 
 ## Legacy Package
 
