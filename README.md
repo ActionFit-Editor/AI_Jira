@@ -11,10 +11,16 @@ This package is the first package boundary for Jira-related AI guidance. The Cat
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.2"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.3"
   }
 }
 ```
+
+## Unity Menu
+
+- Package root: `Tools > Package > AI Jira`.
+- README: `Tools > Package > AI Jira > README`.
+- Package commands stay under the same package root and appear above the separated README/Setting SO entries when those entries exist.
 
 ## AI Guide
 
