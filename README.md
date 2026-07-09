@@ -11,7 +11,7 @@ This package is the first package boundary for Jira-related AI guidance. The Cat
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.4"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.5"
   }
 }
 ```
@@ -50,6 +50,36 @@ Project-local scripts may also read ignored `Tools/AI/jira/config.local.json`, b
 When `Tools/AI/jira/create_issue.py` creates a Jira issue, the default owner is the authenticated Jira API user. The script resolves `/rest/api/3/myself` and writes that account id to the issue `assignee` field when `issue_create.assign_to_current_user` is true or omitted.
 
 New issues should land in the configured `todo` status by default. If the Jira project workflow creates the issue in another initial status, the create script should immediately transition the issue to `issue_create.create_status`, normally `statuses.todo`, before returning the created issue key. Move issues to `progress` only when implementation actually starts.
+
+If new issues must appear in the currently visible sprint board, enable both write flags in ignored local config:
+
+```json
+{
+  "automation": {
+    "allow_sprint_add": true
+  },
+  "issue_create": {
+    "add_to_active_sprint_after_create": true,
+    "board_id": 3,
+    "active_sprint_id": null
+  }
+}
+```
+
+Use `board_id` for normal work so the script resolves the current active sprint. Use `active_sprint_id` only when a fixed sprint is intentionally required. Keep these IDs in ignored local config because board and sprint IDs are project-specific.
+
+## PR Completion Defaults
+
+For Jira-backed development work, creating a PR is not enough to finish the Jira lifecycle. After the PR URL exists, the AI workflow should prepend Korean QA notes when enabled and move the issue to the configured `done` status. In this project that status is `개발 완료`.
+
+Use:
+
+```bash
+python3 Tools/AI/jira/update_description.py MCC-1234 --mode prepend-qa --file qa-notes.md
+python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done
+```
+
+If Jira writes are disabled, credentials are missing, or the configured transition does not exist, the AI must report the blocker instead of silently leaving the issue in progress.
 
 ## Legacy Package
 

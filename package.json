@@ -1,6 +1,6 @@
 {
   "name": "com.actionfit.ai-jira",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "displayName": "AI Jira",
   "description": "ActionFit AI agents use this package to understand Jira task discovery, issue creation, lifecycle transitions, and safe local Jira configuration.",
   "unity": "6000.2",
