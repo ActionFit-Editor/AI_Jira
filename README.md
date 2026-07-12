@@ -1,17 +1,17 @@
 # AI Jira (com.actionfit.ai-jira)
 
-ActionFit AI agents use this package to understand Jira task discovery, issue creation, lifecycle transitions, and safe local Jira configuration.
+ActionFit AI agents use this package for read-only work-item discovery, Jira lifecycle guidance, and safe local Jira automation.
 
 ## Current Scope
 
-This package is the first package boundary for Jira-related AI guidance. The Cat Merge Cafe project still keeps the active Jira automation scripts under `Tools/AI/jira/` for compatibility while this package is introduced.
+The package owns the read-only Jira work-item API and CLI. Cat Merge Cafe keeps project-local compatibility entry points under `Tools/AI/jira/` while write-oriented automation remains behind the existing project client.
 
 ## Install
 
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.6"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.7"
   }
 }
 ```
@@ -25,6 +25,42 @@ This package is the first package boundary for Jira-related AI guidance. The Cat
 ## AI Guide
 
 - Read `AI_GUIDE.md` before changing Jira automation rules, local Jira config behavior, issue lifecycle handling, or Jira REST scripts.
+
+## Work-Item API And CLI
+
+Use the package-owned read-only tool from a consuming Unity project root:
+
+```bash
+python Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state all
+python Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state progress --format json
+python Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state todo --max-results 25
+```
+
+`--state all` includes the configured `todo` and `progress` states, not completed work. Every query automatically limits results to the configured project, `assignee = currentUser()`, and unresolved issues, then sorts by most recently updated.
+
+Text output includes the issue key, status, title, and update time. JSON output adds the resolved status filters, JQL, issue URL, pagination metadata when Jira returns it, and preserves Korean text with UTF-8 rather than `\u` escapes.
+
+The Python API is also available for another package-local tool:
+
+```python
+from jira_work_items import load_config, query_work_items
+
+result = query_work_items(load_config(), state="progress", max_results=50)
+```
+
+Configuration resolution order is `--config`, `AI_JIRA_CONFIG`, then the consuming project's ignored `Tools/AI/jira/config.local.json`. UTF-8 and UTF-8-with-BOM JSON are both accepted. The work-item client exposes only Jira enhanced search and has no write method.
+
+The legacy project command remains compatible and now accepts the same `--state`, `--format`, and `--max-results` options:
+
+```bash
+python Tools/AI/jira/list_my_tasks.py --state progress --format json
+```
+
+Run the package tests without Unity:
+
+```bash
+python -m unittest discover Packages/com.actionfit.ai-jira/Tests~ -p "test_*.py"
+```
 
 ## Personal Jira Credentials
 

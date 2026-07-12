@@ -7,14 +7,14 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.6`
+- Current package version at generation time: `1.0.7`
 - Unity version: `6000.2`
 
 ## Purpose
 
-AI Jira defines ActionFit Jira automation guidance for AI agents: safe issue creation, task discovery, status lifecycle, Korean Jira text rules, description update boundaries, and local secret configuration.
+AI Jira provides a read-only work-item API/CLI and Jira automation guidance for AI agents: safe issue creation, task discovery, status lifecycle, Korean Jira text rules, description update boundaries, and local secret configuration.
 
-This initial package establishes the package boundary. Consuming projects may still keep active scripts at project-local paths such as `Tools/AI/jira/` until compatibility wrappers are added.
+The package owns status-filtered work-item discovery. Consuming projects may keep compatibility entry points at project-local paths such as `Tools/AI/jira/list_my_tasks.py`; write-oriented automation may remain project-local until it is migrated separately.
 
 ## Project Router Registration
 
@@ -38,6 +38,10 @@ Read this file when:
 
 - Jira credentials, board IDs, real base URLs, status names, and user-specific config must stay in ignored local config files or environment variables.
 - Jira task discovery must use the developer's own Atlassian account email and API token. If credentials are missing, tell the user to either set their existing token as `JIRA_API_TOKEN` or create one from `https://id.atlassian.com/manage-profile/security/api-tokens`, then set `JIRA_EMAIL` and `JIRA_API_TOKEN` locally.
+- Use `Tools~/list_work_items.py` for direct Jira work-list retrieval. `--state todo` reads the configured todo status, `--state progress` reads active implementation, and `--state all` combines todo and progress while excluding completed work.
+- Work-list queries must remain read-only and include the configured project when present, `assignee = currentUser()`, `resolution = Unresolved`, and descending update order.
+- Support both text and structured JSON output. JSON must use UTF-8 with unescaped Korean text and include issue key, title, status, updated time, and browser URL.
+- Resolve the ignored config from an explicit `--config`, `AI_JIRA_CONFIG`, or the consuming project's `Tools/AI/jira/config.local.json`, in that order. Read config as UTF-8 with optional BOM and never place credentials inside the package.
 - Do not ask the user to paste Jira API tokens into shared chat. If setup help is needed, guide them through environment variables or ignored local config only.
 - Default write behavior must remain safe: dry-run enabled unless the user explicitly enables the specific write action.
 - New issue creation must assign the issue to the authenticated Jira API user by default. Project-local `Tools/AI/jira/create_issue.py` resolves `/rest/api/3/myself` and writes the returned account id to `assignee` when `issue_create.assign_to_current_user` is true or omitted.
@@ -54,9 +58,9 @@ Read this file when:
 
 ## Compatibility Boundary
 
-- Existing projects may continue to call `Tools/AI/jira/*.py`.
-- This package owns the portable rules and future package-local implementation.
-- A later migration should add project wrappers or install helpers before moving active scripts out of project-local paths.
+- Existing projects may continue to call `Tools/AI/jira/*.py` compatibility entry points.
+- This package owns portable rules and the read-only work-item implementation under `Tools~/`.
+- Write-oriented issue creation, description updates, and transitions remain behind project-local compatibility clients until migrated separately.
 - `com.actionfit.ai_guide_jira` was a placeholder guide package. Treat `com.actionfit.ai-jira` as the canonical Jira automation package and move dependencies, router entries, and documentation references here instead of installing both.
 
 ## Package Tools Menu
