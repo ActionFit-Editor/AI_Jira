@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.5`
+- Current package version at generation time: `1.0.6`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -42,7 +42,10 @@ Read this file when:
 - Default write behavior must remain safe: dry-run enabled unless the user explicitly enables the specific write action.
 - New issue creation must assign the issue to the authenticated Jira API user by default. Project-local `Tools/AI/jira/create_issue.py` resolves `/rest/api/3/myself` and writes the returned account id to `assignee` when `issue_create.assign_to_current_user` is true or omitted.
 - New issue creation must leave the issue in the configured `todo` status by default. If Jira creates the issue in another initial status, the create script should transition the newly created issue to `issue_create.create_status`, normally `statuses.todo`, before reporting the issue key. Move the issue to `progress` only when implementation actually starts.
-- New issue creation may add the created issue to the current active sprint only when `automation.allow_sprint_add=true` and `issue_create.add_to_active_sprint_after_create=true`. Use `issue_create.board_id` to resolve the current active sprint or `issue_create.active_sprint_id` only for an intentionally fixed sprint.
+- Unless the user explicitly requests backlog placement for that issue, new issue creation must resolve the current active sprint before creating the issue and add the created issue to that sprint by default. Prefer `issue_create.board_id`; use `issue_create.active_sprint_id` only for an intentionally fixed sprint.
+- Compatible Jira clients must treat a missing `issue_create.add_to_active_sprint_after_create` value as `true`. An explicit `false` value is allowed only when the user requested backlog placement for that issue. `automation.allow_sprint_add` remains the required write-safety gate; when it is disabled, active-sprint issue creation is blocked rather than downgraded to backlog creation.
+- Missing or ambiguous active sprint resolution, disabled sprint writes, or sprint assignment failure is a creation blocker. Do not silently fall back to the backlog. If assignment fails after Jira already created the issue, report the created issue key and the exact failure.
+- After creation, re-read the issue and verify both the configured `todo` status and membership in the resolved active sprint before reporting success. Create an issue in the backlog only when the user explicitly requests that exception for the issue.
 - Jira-backed development work that produced a PR must move the issue to internal `done` before the final report when Jira writes are enabled. For Cat Merge Cafe, local config should map `statuses.done` to `개발 완료`. If `dry_run`, credentials, `allow_transition`, status mapping, or Jira transitions prevent the move, report the exact blocker.
 - AI-created Jira titles, descriptions, appended requirements, and QA notes must be written in Korean.
 - Do not overwrite full Jira descriptions. Only append confirmed requirements or prepend QA notes when the local config explicitly allows it.
