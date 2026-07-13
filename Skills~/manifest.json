@@ -1,20 +1,25 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "skillPrefix": "jira",
+  "helpSkill": "jira-help",
   "skills": [
     {
       "name": "jira-help",
       "agents": ["codex", "claude"],
-      "includeShared": true
+      "includeShared": true,
+      "access": "read-only"
     },
     {
       "name": "jira-todo",
       "agents": ["codex", "claude"],
-      "includeShared": true
+      "includeShared": true,
+      "access": "read-only"
     },
     {
       "name": "jira-run",
       "agents": ["codex", "claude"],
-      "includeShared": true
+      "includeShared": true,
+      "access": "write-capable"
     }
   ]
 }

@@ -1,34 +1,25 @@
 ---
 name: jira-help
-description: Explain the AI Jira package, installed Jira skills, read-only query commands, project-local write commands, configuration, safety gates, and Unity menus. Use when the user asks for Jira help, available Jira commands, package usage, setup, or the difference between jira-help, jira-todo, and jira-run.
+description: Explain the AI Jira package, its installed related skills, read-only query commands, project-local write commands, configuration, safety gates, and Unity menus. Use when the user asks for Jira help, available skills or commands, package usage, setup, or capability differences.
 ---
 
 # Jira Help
 
 Provide a concise help response in the user's language. Default to Korean for a Korean request. Do not query Jira or change Jira, Git, or project state unless the user separately requests an operation.
 
+## Required Inventory
+
+Read `PACKAGE_SKILLS.md` in this installed skill directory before answering. It is generated from the package identity, schema v2 manifest, and each agent-specific `SKILL.md` frontmatter. Treat its package summary, complete related-skill list, `$name` invocations, descriptions, and access boundaries as authoritative. If it is missing, explain that `Install or Refresh Agent Skills` must be run instead of reconstructing a potentially stale list.
+
 ## Response Contents
 
 Explain these sections in this order:
 
-1. **Package overview**: `com.actionfit.ai-jira` installs project-local Jira skills and provides a read-only work-item CLI. Jira write operations remain behind consuming-project tools and local safety gates.
-2. **Installed skills**:
-   - `jira-help`: explain package capabilities, commands, configuration, and safety without executing them.
-   - `jira-todo`: read-only triage; recommend new work only from `todo` and use `progress` only for overlap or exclusion context.
-   - `jira-run`: manual-only implementation of a user-selected issue through the repository's Jira, worktree, validation, PR, and completion workflow.
+1. **Package overview**: use the generated package ID, display name, and summary. Add that the package installs project-local Jira skills and a read-only work-item CLI, while Jira writes remain behind consuming-project tools and local safety gates.
+2. **Installed skills**: include every row from the generated inventory and preserve each skill's description, when-to-use guidance, access boundary, and exact `$name` invocation. Do not maintain a second hard-coded skill list here.
 3. **Commands**: describe the command, whether it is read-only or write-capable, and its main effect. Use the catalog below.
 4. **Configuration and safety**: mention ignored local config, environment credentials, write gates, and secret-handling rules.
-5. **Unity menus**: list the skill install, removal, and README entries.
-
-Show the skill invocation examples:
-
-```text
-$jira-help
-$jira-todo
-$jira-run MCC-1234
-```
-
-Explain that `jira-run` requires an explicitly selected issue.
+5. **Unity menus**: list the skill install, removal, scaffolding, and README entries.
 
 ## Command Catalog
 
@@ -74,6 +65,7 @@ python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
 
 - `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills`
 - `Tools > Package > Custom Package Manager > Remove Managed Agent Skills`
+- `Tools > Package > Custom Package Manager > Add Agent Skill`
 - `Tools > Package > AI Jira > README`
 
 Explain that refresh updates only unchanged package-managed skills and preserves user-modified or unmanaged skill directories.

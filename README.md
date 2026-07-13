@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.10"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.11"
   }
 }
 ```
@@ -20,22 +20,24 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 
 - Package root: `Tools > Package > AI Jira`.
 - README: `Tools > Package > AI Jira > README`.
-- Shared skill management: `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills` and `Remove Managed Agent Skills`.
+- Shared skill management: `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills`, `Remove Managed Agent Skills`, and `Add Agent Skill`.
 
 ## Codex And Claude Skills
 
-AI Jira registers its package-owned sources through `Skills~/manifest.json`. After Unity resolves AI Jira and its Custom Package Manager dependency, the common installer synchronizes them into the consuming project:
+AI Jira registers schema v2 package-owned sources with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit read-only/write-capable access through `Skills~/manifest.json`. After Unity resolves AI Jira and its Custom Package Manager dependency, the common installer synchronizes them into the consuming project:
 
 - Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, and `.agents/skills/jira-run`.
 - Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, and `.claude/skills/jira-run`.
 
-`jira-help` explains the package, installed skills, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates; `progress` issues and their existing branches, worktrees, or pull requests are overlap and exclusion evidence. A progress issue is never promoted into the recommendation order unless the user explicitly asks about that specific issue, and the skill remains read-only even then. `jira-run` executes only an issue explicitly selected by the user and follows the consuming repository's approval, worktree, validation, PR, and Jira lifecycle rules. Codex disables implicit invocation for `jira-run`; Claude ships it with `disable-model-invocation: true`.
+The installer generates `PACKAGE_SKILLS.md` inside each installed `jira-help` from AI Jira package metadata, the manifest, and agent-specific `SKILL.md` descriptions. `jira-help` reads that inventory first, so package identity, every related skill, its `$name` invocation, when-to-use description, and access boundary stay synchronized without a second hard-coded skill list.
+
+`jira-help` explains the generated inventory, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates; `progress` issues and their existing branches, worktrees, or pull requests are overlap and exclusion evidence. A progress issue is never promoted into the recommendation order unless the user explicitly asks about that specific issue, and the skill remains read-only even then. `jira-run` executes only an issue explicitly selected by the user and follows the consuming repository's approval, worktree, validation, PR, and Jira lifecycle rules. Codex disables implicit invocation for `jira-run`; Claude ships it with `disable-model-invocation: true`.
 
 The package copies files instead of creating links so it also supports Claude Code versions before skill-directory symlink support. Installed skills contain only instructions and a read-only package-tool locator; credentials and ignored Jira config are never copied.
 
 Managed state is stored at ignored project-local `UserSettings/ActionFitPackageManager/skill-install-state.json`. A missing managed target is restored, and an unchanged managed target is refreshed when package content changes. Existing unmanaged targets and user-modified managed targets are preserved with a warning. Automatic install never writes to a user home/global skill directory, never deletes a skill, and is skipped in Unity batch mode. Explicit removal deletes only unchanged managed targets and disables automatic recreation until the install/refresh command is used again.
 
-Existing `UserSettings/AIJira/skill-install-state.json` remains in place as migration input. Custom Package Manager adopts a legacy target only when its current hash still matches the recorded installed hash and also preserves a previously disabled automatic-install preference. AI Jira depends on Custom Package Manager `1.1.69` so direct AI Jira installation receives the same single installation engine used by every ActionFit package instead of activating a Jira-specific second writer.
+Existing `UserSettings/AIJira/skill-install-state.json` remains in place as migration input. Custom Package Manager adopts a legacy target only when its current hash still matches the recorded installed hash and also preserves a previously disabled automatic-install preference. AI Jira depends on Custom Package Manager `1.1.71` so direct AI Jira installation receives schema v2 inventory generation through the same single installation engine used by every ActionFit package instead of activating a Jira-specific second writer.
 
 ## AI Guide
 
