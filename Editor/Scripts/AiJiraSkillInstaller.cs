@@ -353,16 +353,11 @@ namespace ActionFit.AiJira.Editor
         }
     }
 
-    [InitializeOnLoad]
+    [Obsolete("Automatic skill installation is owned by Custom Package Manager. This bootstrap remains only for source compatibility.")]
     internal static class AiJiraSkillBootstrap
     {
         private const string StateRelativePath = "UserSettings/AIJira/skill-install-state.json";
         private const string TempRelativePath = "Temp/AIJiraSkills";
-
-        static AiJiraSkillBootstrap()
-        {
-            if (!Application.isBatchMode) EditorApplication.delayCall += InstallAutomatically;
-        }
 
         internal static AiJiraSkillInstallResult InstallOrRefresh()
         {
@@ -384,21 +379,6 @@ namespace ActionFit.AiJira.Editor
                 projectRoot,
                 Path.Combine(projectRoot, StateRelativePath),
                 Path.Combine(projectRoot, TempRelativePath));
-        }
-
-        private static void InstallAutomatically()
-        {
-            try
-            {
-                string projectRoot = Path.GetFullPath(Path.Combine(Application.dataPath, ".."));
-                string statePath = Path.Combine(projectRoot, StateRelativePath);
-                if (!AiJiraSkillInstallService.IsAutoInstallEnabled(statePath)) return;
-                LogResult("automatic install", InstallOrRefresh());
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning($"[AI Jira] Agent skill installation failed: {exception}");
-            }
         }
 
         internal static void LogResult(string operation, AiJiraSkillInstallResult result)

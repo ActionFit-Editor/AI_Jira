@@ -43,8 +43,8 @@ Explain that create, description update, and transition commands write only when
 
 Keep credentials in environment variables or ignored local config, never display or request Jira tokens in chat, and read repository guidance before advising writes. List these menus:
 
-- `Tools > Package > AI Jira > Install or Refresh Agent Skills`
-- `Tools > Package > AI Jira > Remove Managed Agent Skills`
+- `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills`
+- `Tools > Package > Custom Package Manager > Remove Managed Agent Skills`
 - `Tools > Package > AI Jira > README`
 
 Explain that refresh preserves user-modified and unmanaged skills.

@@ -4,14 +4,14 @@ ActionFit AI agents use this package for project-local Jira skills, read-only wo
 
 ## Current Scope
 
-The package owns Codex and Claude Jira skills plus the read-only Jira work-item API and CLI. Cat Merge Cafe keeps project-local compatibility entry points under `Tools/AI/jira/` while write-oriented automation remains behind the existing project client.
+The package owns Codex and Claude Jira skill content plus the read-only Jira work-item API and CLI. `com.actionfit.custompackagemanager` owns the shared package-skill discovery and installation lifecycle, while Cat Merge Cafe keeps project-local compatibility entry points under `Tools/AI/jira/` and write-oriented automation behind the existing project client.
 
 ## Install
 
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.9"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.10"
   }
 }
 ```
@@ -19,14 +19,12 @@ The package owns Codex and Claude Jira skills plus the read-only Jira work-item 
 ## Unity Menu
 
 - Package root: `Tools > Package > AI Jira`.
-- Install or refresh skills: `Tools > Package > AI Jira > Install or Refresh Agent Skills`.
-- Remove package-managed copies: `Tools > Package > AI Jira > Remove Managed Agent Skills`.
 - README: `Tools > Package > AI Jira > README`.
-- Package commands stay under the same package root and appear above the separated README/Setting SO entries when those entries exist.
+- Shared skill management: `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills` and `Remove Managed Agent Skills`.
 
 ## Codex And Claude Skills
 
-After Unity resolves this package, the Editor installs package-owned skill sources into the consuming project:
+AI Jira registers its package-owned sources through `Skills~/manifest.json`. After Unity resolves AI Jira and its Custom Package Manager dependency, the common installer synchronizes them into the consuming project:
 
 - Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, and `.agents/skills/jira-run`.
 - Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, and `.claude/skills/jira-run`.
@@ -35,7 +33,9 @@ After Unity resolves this package, the Editor installs package-owned skill sourc
 
 The package copies files instead of creating links so it also supports Claude Code versions before skill-directory symlink support. Installed skills contain only instructions and a read-only package-tool locator; credentials and ignored Jira config are never copied.
 
-Managed state is stored at ignored project-local `UserSettings/AIJira/skill-install-state.json`. A missing managed target is restored, and an unchanged managed target is refreshed when package content changes. Existing unmanaged targets and user-modified managed targets are preserved with a warning. Automatic install never writes to a user home/global skill directory, never deletes a skill, and is skipped in Unity batch mode. Explicit removal deletes only unchanged managed targets and disables automatic recreation until the install/refresh command is used again.
+Managed state is stored at ignored project-local `UserSettings/ActionFitPackageManager/skill-install-state.json`. A missing managed target is restored, and an unchanged managed target is refreshed when package content changes. Existing unmanaged targets and user-modified managed targets are preserved with a warning. Automatic install never writes to a user home/global skill directory, never deletes a skill, and is skipped in Unity batch mode. Explicit removal deletes only unchanged managed targets and disables automatic recreation until the install/refresh command is used again.
+
+Existing `UserSettings/AIJira/skill-install-state.json` remains in place as migration input. Custom Package Manager adopts a legacy target only when its current hash still matches the recorded installed hash and also preserves a previously disabled automatic-install preference. AI Jira depends on Custom Package Manager `1.1.69` so direct AI Jira installation receives the same single installation engine used by every ActionFit package instead of activating a Jira-specific second writer.
 
 ## AI Guide
 

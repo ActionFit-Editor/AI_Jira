@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.9`
+- Current package version at generation time: `1.0.10`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -42,7 +42,7 @@ Read this file when:
 - `jira-todo` must query `todo` and `progress` separately. Only `todo` results may be recommended as new work; `progress` results are overlap, dependency, or exclusion context only.
 - An existing branch, worktree, or pull request for a `progress` issue confirms that the issue is already active. It must not cause the skill to recommend continuing that issue unless the user explicitly asks about that specific work.
 - Keep `--state all` available for general read-only API callers, but do not use it as the `jira-todo` candidate source.
-- `jira-help` must explain the package, `jira-help`/`jira-todo`/`jira-run` roles, read-only list/detail commands, optional project-local create/description/transition commands, configuration, write gates, and Unity skill-management menus without executing operations by default.
+- `jira-help` must explain the package, `jira-help`/`jira-todo`/`jira-run` roles, read-only list/detail commands, optional project-local create/description/transition commands, configuration, write gates, and Custom Package Manager skill-management menus without executing operations by default.
 - Use `Tools~/get_work_item.py <ISSUE-KEY>` for read-only issue details needed to judge implementation scope.
 - Work-list queries must remain read-only and include the configured project when present, `assignee = currentUser()`, `resolution = Unresolved`, and descending update order.
 - Support both text and structured JSON output. JSON must use UTF-8 with unescaped Korean text and include issue key, title, status, updated time, and browser URL.
@@ -60,14 +60,16 @@ Read this file when:
 - Do not overwrite full Jira descriptions. Only append confirmed requirements or prepend QA notes when the local config explicitly allows it.
 - Do not add AI-created labels or move issues to a QA status. QA-board movement remains a manual user action after build verification.
 - Keep Jira REST calls behind the package/client boundary so projects can replace auth or endpoint details without changing workflow rules.
-- Package skill sources live under `Skills~/Codex` and `Skills~/Claude`. The Editor copies them to project-local `.agents/skills` and `.claude/skills`, overlaying only the shared read-only locator from `Skills~/Shared`.
+- Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and are registered by `Skills~/manifest.json`. Custom Package Manager copies them to project-local `.agents/skills` and `.claude/skills`, overlaying only the shared read-only locator from `Skills~/Shared`.
 - `jira-help` and `jira-todo` must remain read-only. `jira-run` must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
-- Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. Managed hashes belong in `UserSettings/AIJira/skill-install-state.json`.
+- AI Jira depends on `com.actionfit.custompackagemanager` `1.1.69` so package skill installation has one shared owner. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
+- Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. New managed hashes belong in `UserSettings/ActionFitPackageManager/skill-install-state.json`; the preserved `UserSettings/AIJira/skill-install-state.json` is migration input only.
 - Package refresh may update only a target whose current directory hash matches the recorded installed hash. Explicit removal may delete only the same unchanged targets and must preserve modified or linked directories.
 
 ## Compatibility Boundary
 
 - Existing projects may continue to call `Tools/AI/jira/*.py` compatibility entry points.
+- The old `AiJiraSkillInstallService` remains source-compatible but has no automatic bootstrap or menu caller. Custom Package Manager owns active discovery, installation, refresh, removal, collision handling, and legacy ownership migration.
 - This package owns portable rules and the read-only work-item implementation under `Tools~/`.
 - Write-oriented issue creation, description updates, and transitions remain behind project-local compatibility clients until migrated separately.
 - `com.actionfit.ai_guide_jira` was a placeholder guide package. Treat `com.actionfit.ai-jira` as the canonical Jira automation package and move dependencies, router entries, and documentation references here instead of installing both.
@@ -75,11 +77,8 @@ Read this file when:
 ## Package Tools Menu
 
 - Unity menu root: `Tools/Package/AI Jira/`.
-- Keep package commands under this package root.
-- `Install or Refresh Agent Skills`: explicitly installs missing skills, refreshes unchanged managed skills, and re-enables automatic installation.
-- `Remove Managed Agent Skills`: after confirmation, removes only unchanged managed skills and disables automatic recreation until explicit installation.
-- Lower separated entries:
 - `README`: opens this package README.
+- Skill install, refresh, and removal commands live under `Tools/Package/Custom Package Manager/` because the common manager owns every package's registered skills.
 - Do not add README or Setting SO access back to Custom Package Manager package rows or Project Files.
 
 ## Release Notes

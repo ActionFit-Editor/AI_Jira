@@ -72,8 +72,8 @@ python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
 
 ## Unity Menus
 
-- `Tools > Package > AI Jira > Install or Refresh Agent Skills`
-- `Tools > Package > AI Jira > Remove Managed Agent Skills`
+- `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills`
+- `Tools > Package > Custom Package Manager > Remove Managed Agent Skills`
 - `Tools > Package > AI Jira > README`
 
 Explain that refresh updates only unchanged package-managed skills and preserves user-modified or unmanaged skill directories.

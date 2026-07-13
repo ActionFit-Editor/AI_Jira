@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "skills": [
+    {
+      "name": "jira-help",
+      "agents": ["codex", "claude"],
+      "includeShared": true
+    },
+    {
+      "name": "jira-todo",
+      "agents": ["codex", "claude"],
+      "includeShared": true
+    },
+    {
+      "name": "jira-run",
+      "agents": ["codex", "claude"],
+      "includeShared": true
+    }
+  ]
+}
