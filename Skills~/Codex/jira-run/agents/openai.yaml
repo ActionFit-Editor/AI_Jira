@@ -1,0 +1,6 @@
+interface:
+  display_name: "Jira Run"
+  short_description: "승인된 Jira 작업의 개발과 PR 흐름을 실행합니다"
+  default_prompt: "Use $jira-run to start an explicitly selected Jira issue through implementation and PR."
+policy:
+  allow_implicit_invocation: false

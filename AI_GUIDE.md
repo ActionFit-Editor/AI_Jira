@@ -7,12 +7,12 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.7`
+- Current package version at generation time: `1.0.8`
 - Unity version: `6000.2`
 
 ## Purpose
 
-AI Jira provides a read-only work-item API/CLI and Jira automation guidance for AI agents: safe issue creation, task discovery, status lifecycle, Korean Jira text rules, description update boundaries, and local secret configuration.
+AI Jira provides project-local Codex and Claude skills, a read-only work-item API/CLI, and Jira automation guidance for AI agents: safe issue creation, task discovery, status lifecycle, Korean Jira text rules, description update boundaries, and local secret configuration.
 
 The package owns status-filtered work-item discovery. Consuming projects may keep compatibility entry points at project-local paths such as `Tools/AI/jira/list_my_tasks.py`; write-oriented automation may remain project-local until it is migrated separately.
 
@@ -39,6 +39,7 @@ Read this file when:
 - Jira credentials, board IDs, real base URLs, status names, and user-specific config must stay in ignored local config files or environment variables.
 - Jira task discovery must use the developer's own Atlassian account email and API token. If credentials are missing, tell the user to either set their existing token as `JIRA_API_TOKEN` or create one from `https://id.atlassian.com/manage-profile/security/api-tokens`, then set `JIRA_EMAIL` and `JIRA_API_TOKEN` locally.
 - Use `Tools~/list_work_items.py` for direct Jira work-list retrieval. `--state todo` reads the configured todo status, `--state progress` reads active implementation, and `--state all` combines todo and progress while excluding completed work.
+- Use `Tools~/get_work_item.py <ISSUE-KEY>` for read-only issue details needed to judge implementation scope.
 - Work-list queries must remain read-only and include the configured project when present, `assignee = currentUser()`, `resolution = Unresolved`, and descending update order.
 - Support both text and structured JSON output. JSON must use UTF-8 with unescaped Korean text and include issue key, title, status, updated time, and browser URL.
 - Resolve the ignored config from an explicit `--config`, `AI_JIRA_CONFIG`, or the consuming project's `Tools/AI/jira/config.local.json`, in that order. Read config as UTF-8 with optional BOM and never place credentials inside the package.
@@ -55,6 +56,10 @@ Read this file when:
 - Do not overwrite full Jira descriptions. Only append confirmed requirements or prepend QA notes when the local config explicitly allows it.
 - Do not add AI-created labels or move issues to a QA status. QA-board movement remains a manual user action after build verification.
 - Keep Jira REST calls behind the package/client boundary so projects can replace auth or endpoint details without changing workflow rules.
+- Package skill sources live under `Skills~/Codex` and `Skills~/Claude`. The Editor copies them to project-local `.agents/skills` and `.claude/skills`, overlaying only the shared read-only locator from `Skills~/Shared`.
+- `jira-todo` must remain read-only. `jira-run` must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
+- Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. Managed hashes belong in `UserSettings/AIJira/skill-install-state.json`.
+- Package refresh may update only a target whose current directory hash matches the recorded installed hash. Explicit removal may delete only the same unchanged targets and must preserve modified or linked directories.
 
 ## Compatibility Boundary
 
@@ -67,6 +72,8 @@ Read this file when:
 
 - Unity menu root: `Tools/Package/AI Jira/`.
 - Keep package commands under this package root.
+- `Install or Refresh Agent Skills`: explicitly installs missing skills, refreshes unchanged managed skills, and re-enables automatic installation.
+- `Remove Managed Agent Skills`: after confirmation, removes only unchanged managed skills and disables automatic recreation until explicit installation.
 - Lower separated entries:
 - `README`: opens this package README.
 - Do not add README or Setting SO access back to Custom Package Manager package rows or Project Files.

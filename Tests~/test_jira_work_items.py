@@ -11,7 +11,14 @@ from pathlib import Path
 TOOLS_DIR = Path(__file__).resolve().parents[1] / "Tools~"
 sys.path.insert(0, str(TOOLS_DIR))
 
-from jira_work_items import build_jql, load_config, query_work_items, write_json, write_text
+from jira_work_items import (
+    build_jql,
+    load_config,
+    query_work_item,
+    query_work_items,
+    write_json,
+    write_text,
+)
 
 
 class FakeJiraReadApi:
@@ -34,6 +41,35 @@ class FakeJiraReadApi:
                 }
             ],
             "isLast": True,
+        }
+
+    def get_issue(self, issue_key: str, fields: list[str]) -> dict:
+        self.issue_key = issue_key
+        self.fields = fields
+        return {
+            "key": issue_key,
+            "fields": {
+                "summary": "스킬 자동 설치",
+                "status": {"name": "개발 진행 중"},
+                "updated": "2026-07-13T18:00:00.000+0900",
+                "description": {
+                    "type": "doc",
+                    "content": [
+                        {"type": "paragraph", "content": [{"type": "text", "text": "한글 설명"}]},
+                        {"type": "bulletList", "content": [
+                            {"type": "listItem", "content": [
+                                {"type": "paragraph", "content": [{"type": "text", "text": "안전 설치"}]}
+                            ]}
+                        ]},
+                    ],
+                },
+                "priority": {"name": "Medium"},
+                "labels": ["ai-jira"],
+                "assignee": {"displayName": "개발자"},
+                "issuetype": {"name": "추가"},
+                "resolution": None,
+                "project": {"key": "MCC"},
+            },
         }
 
 
@@ -104,6 +140,28 @@ class JiraWorkItemsTests(unittest.TestCase):
             loaded = load_config(str(path))
 
         self.assertEqual("개발 진행 중", loaded["statuses"]["progress"])
+
+    def test_query_one_issue_returns_implementation_context(self) -> None:
+        api = FakeJiraReadApi()
+
+        result = query_work_item(self.config, "MCC-1441", api=api)
+
+        self.assertEqual("MCC-1441", api.issue_key)
+        self.assertIn("description", api.fields)
+        self.assertEqual("스킬 자동 설치", result["summary"])
+        self.assertEqual("한글 설명\n안전 설치", result["description"])
+        self.assertEqual("개발자", result["assignee"])
+        self.assertEqual("MCC", result["project"])
+        self.assertEqual("", result["resolution"])
+
+    def test_one_issue_json_preserves_korean(self) -> None:
+        result = query_work_item(self.config, "MCC-1441", api=FakeJiraReadApi())
+        output = io.StringIO()
+
+        write_json(result, output)
+
+        self.assertIn("한글 설명", output.getvalue())
+        self.assertNotIn("\\u", output.getvalue())
 
 
 if __name__ == "__main__":

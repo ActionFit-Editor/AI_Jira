@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira Todo"
+  short_description: "담당 Jira 작업을 조회하고 처리 가능성을 정리합니다"
+  default_prompt: "Use $jira-todo to inspect my assigned Jira todo items and recommend actionable work."

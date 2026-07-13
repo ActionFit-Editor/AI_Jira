@@ -1,17 +1,17 @@
 # AI Jira (com.actionfit.ai-jira)
 
-ActionFit AI agents use this package for read-only work-item discovery, Jira lifecycle guidance, and safe local Jira automation.
+ActionFit AI agents use this package for project-local Jira skills, read-only work-item discovery, Jira lifecycle guidance, and safe local automation.
 
 ## Current Scope
 
-The package owns the read-only Jira work-item API and CLI. Cat Merge Cafe keeps project-local compatibility entry points under `Tools/AI/jira/` while write-oriented automation remains behind the existing project client.
+The package owns Codex and Claude Jira skills plus the read-only Jira work-item API and CLI. Cat Merge Cafe keeps project-local compatibility entry points under `Tools/AI/jira/` while write-oriented automation remains behind the existing project client.
 
 ## Install
 
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.7"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.8"
   }
 }
 ```
@@ -19,8 +19,23 @@ The package owns the read-only Jira work-item API and CLI. Cat Merge Cafe keeps 
 ## Unity Menu
 
 - Package root: `Tools > Package > AI Jira`.
+- Install or refresh skills: `Tools > Package > AI Jira > Install or Refresh Agent Skills`.
+- Remove package-managed copies: `Tools > Package > AI Jira > Remove Managed Agent Skills`.
 - README: `Tools > Package > AI Jira > README`.
 - Package commands stay under the same package root and appear above the separated README/Setting SO entries when those entries exist.
+
+## Codex And Claude Skills
+
+After Unity resolves this package, the Editor installs package-owned skill sources into the consuming project:
+
+- Codex: `.agents/skills/jira-todo` and `.agents/skills/jira-run`.
+- Claude: `.claude/skills/jira-todo` and `.claude/skills/jira-run`.
+
+`jira-todo` inspects assigned unresolved todo/in-progress issues and recommends work without changing Jira, Git, or project files. `jira-run` executes only an issue explicitly selected by the user and follows the consuming repository's approval, worktree, validation, PR, and Jira lifecycle rules. Codex disables implicit invocation for `jira-run`; Claude ships it with `disable-model-invocation: true`.
+
+The package copies files instead of creating links so it also supports Claude Code versions before skill-directory symlink support. Installed skills contain only instructions and a read-only package-tool locator; credentials and ignored Jira config are never copied.
+
+Managed state is stored at ignored project-local `UserSettings/AIJira/skill-install-state.json`. A missing managed target is restored, and an unchanged managed target is refreshed when package content changes. Existing unmanaged targets and user-modified managed targets are preserved with a warning. Automatic install never writes to a user home/global skill directory, never deletes a skill, and is skipped in Unity batch mode. Explicit removal deletes only unchanged managed targets and disables automatic recreation until the install/refresh command is used again.
 
 ## AI Guide
 
@@ -31,9 +46,10 @@ The package owns the read-only Jira work-item API and CLI. Cat Merge Cafe keeps 
 Use the package-owned read-only tool from a consuming Unity project root:
 
 ```bash
-python Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state all
-python Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state progress --format json
-python Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state todo --max-results 25
+python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state all
+python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state progress --format json
+python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state todo --max-results 25
+python3 Packages/com.actionfit.ai-jira/Tools~/get_work_item.py MCC-1234 --format json
 ```
 
 `--state all` includes the configured `todo` and `progress` states, not completed work. Every query automatically limits results to the configured project, `assignee = currentUser()`, and unresolved issues, then sorts by most recently updated.
@@ -53,13 +69,13 @@ Configuration resolution order is `--config`, `AI_JIRA_CONFIG`, then the consumi
 The legacy project command remains compatible and now accepts the same `--state`, `--format`, and `--max-results` options:
 
 ```bash
-python Tools/AI/jira/list_my_tasks.py --state progress --format json
+python3 Tools/AI/jira/list_my_tasks.py --state progress --format json
 ```
 
 Run the package tests without Unity:
 
 ```bash
-python -m unittest discover Packages/com.actionfit.ai-jira/Tests~ -p "test_*.py"
+python3 -m unittest discover Packages/com.actionfit.ai-jira/Tests~ -p "test_*.py"
 ```
 
 ## Personal Jira Credentials

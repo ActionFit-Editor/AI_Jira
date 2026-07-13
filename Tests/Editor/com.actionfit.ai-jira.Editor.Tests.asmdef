@@ -1,0 +1,23 @@
+{
+    "name": "com.actionfit.ai-jira.Editor.Tests",
+    "rootNamespace": "ActionFit.AiJira.Editor.Tests",
+    "references": [
+        "com.actionfit.ai-jira.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

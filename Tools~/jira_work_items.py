@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import Any, TextIO
 from urllib.error import HTTPError
+from urllib.parse import quote
 from urllib.request import Request, urlopen
 
 
@@ -129,6 +130,89 @@ class JiraReadApi:
             detail = error.read().decode("utf-8", errors="replace")
             raise SystemExit(f"Jira search failed: HTTP {error.code} {error.reason}\n{detail}") from error
 
+    def get_issue(self, issue_key: str, fields: list[str]) -> dict[str, Any]:
+        email, token = _resolve_auth(self.config)
+        encoded_auth = base64.b64encode(f"{email}:{token}".encode("utf-8")).decode("ascii")
+        requested_fields = ",".join(fields)
+        request = Request(
+            f"{self.base_url}/rest/api/3/issue/{quote(issue_key, safe='')}?fields={requested_fields}",
+            headers={
+                "Accept": "application/json",
+                "Authorization": "Basic " + encoded_auth,
+            },
+            method="GET",
+        )
+        try:
+            with urlopen(request) as response:
+                raw = response.read().decode("utf-8-sig")
+                return json.loads(raw) if raw else {}
+        except HTTPError as error:
+            detail = error.read().decode("utf-8", errors="replace")
+            raise SystemExit(
+                f"Jira issue lookup failed: HTTP {error.code} {error.reason}\n{detail}"
+            ) from error
+
+
+def adf_to_text(node: Any) -> str:
+    """Render the useful textual subset of Atlassian Document Format."""
+    if node is None:
+        return ""
+    if isinstance(node, str):
+        return node
+    if isinstance(node, list):
+        return "".join(adf_to_text(item) for item in node)
+    if not isinstance(node, dict):
+        return str(node)
+
+    node_type = node.get("type")
+    if node_type == "text":
+        return str(node.get("text", ""))
+    if node_type == "hardBreak":
+        return "\n"
+
+    rendered = adf_to_text(node.get("content", []))
+    if node_type in {"paragraph", "heading", "listItem", "bulletList", "orderedList", "blockquote"}:
+        return rendered.rstrip() + "\n"
+    return rendered
+
+
+def query_work_item(
+    config: dict[str, Any],
+    issue_key: str,
+    api: JiraReadApi | None = None,
+) -> dict[str, Any]:
+    fields = [
+        "summary",
+        "status",
+        "updated",
+        "description",
+        "priority",
+        "labels",
+        "assignee",
+        "issuetype",
+        "resolution",
+        "project",
+    ]
+    api = api or JiraReadApi(config)
+    issue = api.get_issue(issue_key, fields)
+    values = issue.get("fields", {})
+    key = str(issue.get("key", issue_key))
+    base_url = str(config.get("jira_base_url", "")).rstrip("/")
+    return {
+        "key": key,
+        "summary": str(values.get("summary", "")),
+        "status": str((values.get("status") or {}).get("name", "")),
+        "updated": str(values.get("updated", "")),
+        "url": f"{base_url}/browse/{key}" if base_url and key else "",
+        "description": adf_to_text(values.get("description")).strip(),
+        "priority": str((values.get("priority") or {}).get("name", "")),
+        "labels": [str(label) for label in values.get("labels") or []],
+        "assignee": str((values.get("assignee") or {}).get("displayName", "")),
+        "issueType": str((values.get("issuetype") or {}).get("name", "")),
+        "resolution": str((values.get("resolution") or {}).get("name", "")),
+        "project": str((values.get("project") or {}).get("key", "")),
+    }
+
 
 def query_work_items(
     config: dict[str, Any],
@@ -191,3 +275,14 @@ def write_json(result: dict[str, Any], stream: TextIO | None = None) -> None:
     stream = stream or sys.stdout
     json.dump(result, stream, ensure_ascii=False, indent=2)
     stream.write("\n")
+
+
+def write_issue_text(result: dict[str, Any], stream: TextIO | None = None) -> None:
+    stream = stream or sys.stdout
+    stream.write(f'{result["key"]} [{result["status"]}] {result["summary"]}\n')
+    stream.write(f'Assignee: {result["assignee"] or "(unassigned)"}\n')
+    stream.write(f'Priority: {result["priority"] or "(none)"}\n')
+    stream.write(f'Updated: {result["updated"]}\n')
+    stream.write(f'URL: {result["url"]}\n')
+    stream.write("Description:\n")
+    stream.write((result["description"] or "(empty)") + "\n")
