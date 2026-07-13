@@ -85,7 +85,7 @@ class JiraWorkItemsTests(unittest.TestCase):
             },
         }
 
-    def test_build_jql_for_all_actionable_states(self) -> None:
+    def test_build_jql_for_all_unresolved_work_states(self) -> None:
         jql, statuses = build_jql(self.config, "all")
 
         self.assertEqual(["해야 할 일", "개발 진행 중"], statuses)

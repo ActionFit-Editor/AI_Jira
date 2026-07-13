@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List the current Jira user's actionable work items."""
+"""List unresolved Jira work assigned to the current user."""
 
 from __future__ import annotations
 

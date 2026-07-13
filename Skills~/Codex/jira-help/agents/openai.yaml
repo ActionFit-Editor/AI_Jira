@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira Help"
+  short_description: "AI Jira 패키지와 주요 명령 사용법을 안내합니다"
+  default_prompt: "Use $jira-help to explain the AI Jira package and its available skills and commands."

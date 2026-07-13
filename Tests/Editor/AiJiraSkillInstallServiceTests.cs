@@ -23,8 +23,10 @@ namespace ActionFit.AiJira.Editor.Tests
             _tempRoot = Path.Combine(_projectRoot, "Temp", "AIJiraSkills");
             Directory.CreateDirectory(_projectRoot);
 
+            WriteSource("Codex", "jira-help", "codex help");
             WriteSource("Codex", "jira-todo", "codex todo");
             WriteSource("Codex", "jira-run", "codex run");
+            WriteSource("Claude", "jira-help", "claude help");
             WriteSource("Claude", "jira-todo", "claude todo");
             WriteSource("Claude", "jira-run", "claude run");
             WriteFile(Path.Combine(_sourceRoot, "Shared", "scripts", "ai_jira_cli.py"), "shared helper");
@@ -42,10 +44,14 @@ namespace ActionFit.AiJira.Editor.Tests
             AiJiraSkillInstallResult first = Install();
             AiJiraSkillInstallResult second = Install();
 
-            Assert.That(first.Installed, Is.EqualTo(4));
-            Assert.That(second.Unchanged, Is.EqualTo(4));
+            Assert.That(first.Installed, Is.EqualTo(6));
+            Assert.That(second.Unchanged, Is.EqualTo(6));
             Assert.That(second.Installed + second.Updated, Is.Zero);
+            Assert.That(File.ReadAllText(Target(".agents", "jira-help", "SKILL.md")),
+                Is.EqualTo("codex help"));
             Assert.That(File.ReadAllText(Target(".agents", "jira-todo", "scripts", "ai_jira_cli.py")),
+                Is.EqualTo("shared helper"));
+            Assert.That(File.ReadAllText(Target(".claude", "jira-help", "scripts", "ai_jira_cli.py")),
                 Is.EqualTo("shared helper"));
         }
 
@@ -58,7 +64,7 @@ namespace ActionFit.AiJira.Editor.Tests
             AiJiraSkillInstallResult result = Install();
 
             Assert.That(result.Updated, Is.EqualTo(1));
-            Assert.That(result.Unchanged, Is.EqualTo(3));
+            Assert.That(result.Unchanged, Is.EqualTo(5));
             Assert.That(File.ReadAllText(Target(".agents", "jira-todo", "SKILL.md")),
                 Is.EqualTo("updated todo"));
         }
@@ -99,7 +105,7 @@ namespace ActionFit.AiJira.Editor.Tests
             AiJiraSkillInstallResult result = AiJiraSkillInstallService.RemoveManaged(
                 _projectRoot, _statePath, _tempRoot);
 
-            Assert.That(result.Removed, Is.EqualTo(3));
+            Assert.That(result.Removed, Is.EqualTo(5));
             Assert.That(result.Warnings, Has.Count.EqualTo(1));
             Assert.That(File.ReadAllText(modified), Is.EqualTo("keep me"));
             Assert.That(Directory.Exists(Target(".agents", "jira-todo")), Is.False);
@@ -117,7 +123,7 @@ namespace ActionFit.AiJira.Editor.Tests
 
             AiJiraSkillInstallResult result = Install();
 
-            Assert.That(result.Installed, Is.EqualTo(3));
+            Assert.That(result.Installed, Is.EqualTo(5));
             Assert.That(result.Warnings, Has.Count.EqualTo(1));
             Assert.That(File.ReadAllText(target), Is.EqualTo("existing user skill"));
         }
@@ -130,7 +136,7 @@ namespace ActionFit.AiJira.Editor.Tests
 
             AiJiraSkillInstallResult result = Install();
 
-            Assert.That(result.Installed, Is.EqualTo(3));
+            Assert.That(result.Installed, Is.EqualTo(5));
             Assert.That(result.Warnings, Has.Count.EqualTo(1));
             Assert.That(File.ReadAllText(target), Is.EqualTo("existing file"));
         }

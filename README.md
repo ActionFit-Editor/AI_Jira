@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skills plus the read-only Jira work-item 
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.8"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.9"
   }
 }
 ```
@@ -28,10 +28,10 @@ The package owns Codex and Claude Jira skills plus the read-only Jira work-item 
 
 After Unity resolves this package, the Editor installs package-owned skill sources into the consuming project:
 
-- Codex: `.agents/skills/jira-todo` and `.agents/skills/jira-run`.
-- Claude: `.claude/skills/jira-todo` and `.claude/skills/jira-run`.
+- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, and `.agents/skills/jira-run`.
+- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, and `.claude/skills/jira-run`.
 
-`jira-todo` inspects assigned unresolved todo/in-progress issues and recommends work without changing Jira, Git, or project files. `jira-run` executes only an issue explicitly selected by the user and follows the consuming repository's approval, worktree, validation, PR, and Jira lifecycle rules. Codex disables implicit invocation for `jira-run`; Claude ships it with `disable-model-invocation: true`.
+`jira-help` explains the package, installed skills, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates; `progress` issues and their existing branches, worktrees, or pull requests are overlap and exclusion evidence. A progress issue is never promoted into the recommendation order unless the user explicitly asks about that specific issue, and the skill remains read-only even then. `jira-run` executes only an issue explicitly selected by the user and follows the consuming repository's approval, worktree, validation, PR, and Jira lifecycle rules. Codex disables implicit invocation for `jira-run`; Claude ships it with `disable-model-invocation: true`.
 
 The package copies files instead of creating links so it also supports Claude Code versions before skill-directory symlink support. Installed skills contain only instructions and a read-only package-tool locator; credentials and ignored Jira config are never copied.
 
@@ -52,7 +52,7 @@ python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state todo --
 python3 Packages/com.actionfit.ai-jira/Tools~/get_work_item.py MCC-1234 --format json
 ```
 
-`--state all` includes the configured `todo` and `progress` states, not completed work. Every query automatically limits results to the configured project, `assignee = currentUser()`, and unresolved issues, then sorts by most recently updated.
+`--state all` includes the configured `todo` and `progress` states, not completed work. It remains available for general read-only callers, but `jira-todo` does not use it for candidate selection: the skill calls `--state todo` for recommendations and `--state progress` separately for overlap detection. Every query automatically limits results to the configured project, `assignee = currentUser()`, and unresolved issues, then sorts by most recently updated.
 
 Text output includes the issue key, status, title, and update time. JSON output adds the resolved status filters, JQL, issue URL, pagination metadata when Jira returns it, and preserves Korean text with UTF-8 rather than `\u` escapes.
 

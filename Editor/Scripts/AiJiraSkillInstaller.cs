@@ -25,8 +25,10 @@ namespace ActionFit.AiJira.Editor
 
         private static readonly SkillTarget[] Targets =
         {
+            new SkillTarget("Codex/jira-help", ".agents/skills/jira-help"),
             new SkillTarget("Codex/jira-todo", ".agents/skills/jira-todo"),
             new SkillTarget("Codex/jira-run", ".agents/skills/jira-run"),
+            new SkillTarget("Claude/jira-help", ".claude/skills/jira-help"),
             new SkillTarget("Claude/jira-todo", ".claude/skills/jira-todo"),
             new SkillTarget("Claude/jira-run", ".claude/skills/jira-run"),
         };
