@@ -1,6 +1,6 @@
 interface:
   display_name: "Jira Auto Start"
-  short_description: "착수 가능 여부를 판정하고 가능한 Jira 일을 실행합니다"
-  default_prompt: "Use $jira-auto-start to report which assigned Jira todo items are startable after prerequisite checks, then execute the first startable item."
+  short_description: "착수 가능 Jira 작업을 판정하고 한 건을 실행합니다"
+  default_prompt: "Use $jira-auto-start to classify Jira todo items, then execute the first eligible task or show a Korean plan approval view."
 policy:
   allow_implicit_invocation: false

@@ -1,6 +1,6 @@
 ---
 name: jira-run
-description: Implement an explicitly selected Jira issue through planning refinement when needed, validation, a pull request, Korean QA completion notes, and configured Jira lifecycle updates.
+description: Implement an explicitly selected Jira issue through a complete Korean planning approval view backed by the exact mixed-language Jira draft when refinement is needed, validation, a pull request, Korean QA completion notes, and configured Jira lifecycle updates.
 disable-model-invocation: true
 ---
 
@@ -12,7 +12,7 @@ Use this skill only after the user explicitly invokes it with an issue key or ex
 2. Read `CLAUDE.md`, `AGENTS.md`, and linked repository rules for Jira, worktrees, tests, commits, and pull requests.
 3. Check for an existing branch, worktree, or pull request before creating anything.
 4. Read `descriptionContract`, then restate scope, risk, and validation. Obtain repository-required approval unless the invocation already contains an explicit approved scope.
-5. If the contract needs plan and the issue is todo, transition it to progress as a planning lock, verify and capture `updated`, then follow the Jira Plan mixed-language approval flow. Update only with `update_description.py --mode replace-plan --expected-updated ...`; return to todo for plan only, keep progress for approved implementation, and attempt rollback on update failure. Never expire or steal a lock.
+5. If the contract needs plan and the issue is todo, transition it to progress as a planning lock, verify and capture `updated`, then prepare and retain the canonical Jira Plan mixed-language draft. Read `references/korean-approval-preview.md`, show its complete Korean approval view, and explain that approval writes the corresponding pre-preview canonical draft. Update only with `update_description.py --mode replace-plan --expected-updated ...` using that draft; return to todo for plan only, keep progress for approved implementation, and attempt rollback on update failure. Never expire or steal a lock. If canonical state is unavailable or uncertain, regenerate both representations and obtain approval again.
 6. For ready todo work, transition to progress only when implementation starts. Missing tools or disabled gates are blockers, not permission to call Jira directly.
 7. Work in the required isolated worktree, preserve unrelated changes, implement the approved scope, update docs, and validate.
 8. Review, commit without an AI co-author trailer, push, and create the pull request.

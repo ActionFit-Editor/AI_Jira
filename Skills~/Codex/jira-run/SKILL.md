@@ -1,6 +1,6 @@
 ---
 name: jira-run
-description: Implement an explicitly selected Jira issue through planning refinement when needed, an isolated worktree, validation, pull request, Korean QA completion notes, and configured Jira lifecycle updates.
+description: Implement an explicitly selected Jira issue through a complete Korean planning approval view backed by the exact mixed-language Jira draft when refinement is needed, an isolated worktree, validation, pull request, Korean QA completion notes, and configured Jira lifecycle updates.
 ---
 
 # Jira Run
@@ -13,7 +13,7 @@ Use this skill only when the user explicitly invokes it and identifies the Jira 
 2. Read the repository's `AGENTS.md`, `CLAUDE.md`, and linked project guidance, including its Jira, worktree, validation, commit, and pull-request rules.
 3. Check existing branches, worktrees, and pull requests for the issue before creating anything.
 4. Read `descriptionContract`. Restate the implementation scope, risk, and validation plan. Obtain any approval required by the repository workflow; an invocation that already contains an explicit approved scope can satisfy this step.
-5. If the contract is `needs-plan` and the issue is in todo, re-read it, move it to progress as a planning lock, verify the status, capture `updated`, and follow the `jira-plan` mixed-language refinement protocol. After full-draft approval, update only through `update_description.py --mode replace-plan --expected-updated ...`. Return to todo for plan only; keep progress only when the user approved implementation. Roll back to todo after update failure when possible, never expire or steal a lock, and leave an interrupted planning session in progress.
+5. If the contract is `needs-plan` and the issue is in todo, re-read it, move it to progress as a planning lock, verify the status, capture `updated`, and follow the `jira-plan` canonical-storage protocol. Read `references/korean-approval-preview.md`, retain the exact mixed-language draft, and show its complete Korean approval view. After full-draft approval, update only through `update_description.py --mode replace-plan --expected-updated ...` with that pre-preview canonical draft. Return to todo for plan only; keep progress only when the user approved implementation. Roll back to todo after update failure when possible, never expire or steal a lock, and leave an interrupted planning session in progress. If canonical state is unavailable or uncertain, regenerate both representations and obtain approval again.
 6. If the issue is ready and still in todo, move it to the configured progress status only when implementation starts. If Jira tools or matching write gates are unavailable, report the blocker instead of calling Jira directly.
 7. Create the required isolated worktree, implement only the approved scope, update relevant documentation, and run proportionate tests.
 8. Review the diff, commit without an AI co-author trailer, push, and create the pull request according to repository guidance.

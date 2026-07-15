@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.13"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.14"
   }
 }
 ```
@@ -33,7 +33,9 @@ The installer generates `PACKAGE_SKILLS.md` inside each installed `jira-help` fr
 
 `jira-help` explains the generated inventory, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates; `progress` issues and their existing branches, worktrees, or pull requests are overlap and exclusion evidence. A progress issue is never promoted into the recommendation order unless the user explicitly asks about that specific issue, and the skill remains read-only even then.
 
-`jira-plan` researches and discusses a development idea, shows a Korean title plus a mixed-language managed description, and creates one assigned `todo` issue only after full-draft approval. It can also refine one explicitly selected needs-plan issue under a verified progress planning lock without implementing it. `jira-auto-start` leaves the read-only `jira-todo` overview unchanged, classifies every assigned unresolved `todo` as startable, needs-plan, blocked, or approval-required, executes the first startable item, and only when none is startable offers collaborative refinement for the first needs-plan item. A prerequisite counts as complete only when its Jira resolution is set or its status matches configured `done`. Sensitive, destructive, publishing, deployment, production, and credential work remains separately approved. `jira-run` handles an issue explicitly selected by the user and uses the same planning-lock protocol when its contract is incomplete.
+`jira-plan` researches and discusses a development idea, prepares the canonical mixed-language Jira storage draft, and derives a complete Korean approval view before creating one assigned `todo` issue. It can also refine one explicitly selected needs-plan issue under a verified progress planning lock without implementing it. `jira-auto-start` leaves the read-only `jira-todo` overview unchanged, classifies every assigned unresolved `todo` as startable, needs-plan, blocked, or approval-required, executes the first startable item, and only when none is startable offers collaborative refinement for the first needs-plan item. A prerequisite counts as complete only when its Jira resolution is set or its status matches configured `done`. Sensitive, destructive, publishing, deployment, production, and credential work remains separately approved. `jira-run` handles an issue explicitly selected by the user and uses the same planning-lock and Korean approval-preview protocol when its contract is incomplete.
+
+All planning approval entry points show the complete user-visible plan in Korean and preserve technical identifiers. Jira still stores the Korean title and QA section plus English managed sections. Approval writes the exact canonical storage draft prepared before the preview; it never back-translates the Korean view. Requested revisions update the canonical draft first and require a regenerated complete Korean view and new approval. If interruption or context loss makes the canonical draft unavailable or uncertain, the workflow regenerates both representations and asks again instead of writing Jira. The English storage body is shown only when the user explicitly asks for it.
 
 All three write-capable skills are manual-only: Codex disables implicit invocation and Claude ships them with `disable-model-invocation: true`.
 
@@ -116,7 +118,9 @@ AI-created Jira titles are Korean. The QA heading, planned QA checks, and comple
 
 Keep exactly one Korean `### 계획`, all three Auto Start fields, and every English heading. Each English section must contain content; use `None.` when no item applies.
 
-Existing Jira descriptions are never bulk-migrated. A needs-plan issue moves from todo to progress as a planning lock before collaboration. After the user approves the complete draft, the consuming project may update only the managed plan with the independent `allow_description_plan_refinement` gate, the captured Jira `updated` value, and the verified progress status:
+The managed description above is the canonical Jira storage representation. Before asking the user to approve creation or needs-plan refinement, `jira-plan`, `jira-auto-start`, and `jira-run` derive a full Korean conversational view from it using `Skills~/Shared/references/korean-approval-preview.md`. That view translates the managed headings, field labels, control values, and explanatory content while preserving operational identifiers. The pre-preview canonical draft remains the only allowed write payload.
+
+Existing Jira descriptions are never bulk-migrated. A needs-plan issue moves from todo to progress as a planning lock before collaboration. After the user approves the complete Korean view and its corresponding canonical draft, the consuming project may update only the managed plan with the independent `allow_description_plan_refinement` gate, the captured Jira `updated` value, and the verified progress status:
 
 ```bash
 python3 Tools/AI/jira/update_description.py MCC-1234 \

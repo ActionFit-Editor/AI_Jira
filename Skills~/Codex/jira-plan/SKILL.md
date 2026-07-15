@@ -1,6 +1,6 @@
 ---
 name: jira-plan
-description: Research and discuss a development plan, obtain explicit approval for a Korean Jira title and mixed-language managed description, then create a new todo issue or safely refine an existing planning-locked issue without implementing it. Use for new Jira-ready plans and for todo issues classified as needs-plan.
+description: Research and discuss a development plan, show the complete approval draft in Korean while retaining the exact mixed-language Jira storage draft, then create a new todo issue or safely refine an existing planning-locked issue after explicit approval without implementing it. Use for new Jira-ready plans and for todo issues classified as needs-plan.
 ---
 
 # Jira Plan
@@ -19,7 +19,7 @@ Do not edit repository files, create a worktree, or start implementation while p
 
 ## Prepare The Jira Draft
 
-Write the Jira title in Korean. Keep `## QA 확인 필요 사항` and all of its content in Korean. Write every other managed heading and its content in English. Preserve technical identifiers such as class names, file paths, commands, config keys, and branch names. Explain or translate the stored plan in the user's language when requested.
+Write the canonical Jira storage title in Korean. Keep `## QA 확인 필요 사항` and all of its content in Korean. Write every other managed heading and its content in English. Preserve technical identifiers such as class names, file paths, commands, config keys, and branch names.
 
 Use this complete description structure:
 
@@ -53,7 +53,7 @@ Keep the three `Auto Start` fields and every managed heading. Give every English
 
 Make implementation steps ordered and concrete. Make completion conditions observable and validation steps executable. Identify unresolved decisions instead of hiding them in the plan.
 
-Show the full final title and description to the user and ask for explicit approval of the requested Jira create or managed-plan update. Discussion, partial approval, or approval of only the approach does not authorize a Jira write.
+Before asking for approval, read `references/korean-approval-preview.md` and follow its dual-representation contract. Prepare and retain the exact canonical storage draft first, then show its complete Korean approval view without displaying the English storage body by default. Ask for explicit approval of the requested Jira create or managed-plan update and explain that approval writes the corresponding pre-preview canonical mixed-language draft. Discussion, partial approval, or approval of only the approach does not authorize a Jira write.
 
 ## Refine An Existing Needs-Plan Issue
 
@@ -61,7 +61,7 @@ Use this path only for an explicitly selected assigned unresolved todo issue who
 
 1. Re-read the issue and require its status to equal `configuredStatuses.todo`.
 2. Move it to `progress` with the consuming project's transition tool, re-read it, verify the status, and record the returned `updated` value. This status is a planning lock; other sessions must exclude it.
-3. Discuss the missing scope or decisions and prepare the complete mixed-language description above. Show the full draft and ask whether the user approves **plan only** or **plan update and implementation**.
+3. Discuss the missing scope or decisions and prepare the complete canonical mixed-language description above. Follow `references/korean-approval-preview.md`, show its complete Korean approval view, and ask whether the user approves **plan only** or **plan update and implementation**.
 4. After explicit approval, write the draft to a temporary UTF-8 file outside the repository and call `Tools/AI/jira/update_description.py <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value>`. Remove the temporary file.
 5. Re-read the issue and verify the approved managed contract. For plan only, move it back to `todo` and verify. For plan update and implementation, leave it in `progress` and return control to the explicitly invoked run or auto-start workflow; this skill still does not implement.
 
@@ -69,7 +69,7 @@ The project tool must preserve existing Korean QA completion records and unmanag
 
 ## Create After Approval
 
-1. Re-read the approved title and description without silently revising them.
+1. Reuse the exact canonical title and description prepared before the approved Korean preview without silently revising or back-translating them.
 2. Use the consuming project's `Tools/AI/jira/create_issue.py` with `--summary` and a temporary UTF-8 `--description-file` outside the repository, then remove that temporary file. Do not call Jira REST directly.
 3. Let the project tool enforce assignment to the authenticated user, configured todo status, active-sprint behavior, dry-run mode, and write gates.
 4. Report the created issue key and URL, or the exact blocker when configuration, credentials, sprint resolution, or write gates prevent creation.
@@ -85,4 +85,5 @@ If a likely duplicate exists, present it and obtain the user's decision before c
 - Never create labels, epics, subtasks, Jira Advanced Roadmaps Plans, or backlog exceptions unless the user explicitly requests them and repository tooling supports them.
 - Never expose credentials or print ignored Jira config contents.
 - Never migrate existing Jira descriptions in bulk.
+- Never write Jira when the exact canonical draft behind the approved Korean view is unavailable or uncertain; regenerate both representations and obtain approval again.
 - Use `$jira-run` or `$jira-auto-start` in a later invocation when the user wants implementation.

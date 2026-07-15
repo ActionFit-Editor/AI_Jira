@@ -26,6 +26,10 @@ class JiraHelpSkillTests(unittest.TestCase):
         self.assertIn("transition_issue.py", contents)
         self.assertIn("--to todo", contents)
         self.assertIn("--pr-url", contents)
+        self.assertIn("complete planning approval views in Korean", contents)
+        self.assertIn("exact mixed-language storage draft", contents)
+        self.assertIn("never a back-translation", contents)
+        self.assertIn("lost canonical state", contents)
         self.assertIn("Do not query Jira", contents)
         self.assertNotIn("TODO", contents)
 
@@ -45,6 +49,10 @@ class JiraHelpSkillTests(unittest.TestCase):
         self.assertIn("transition_issue.py", contents)
         self.assertIn("--to todo", contents)
         self.assertIn("--pr-url", contents)
+        self.assertIn("complete approval views in Korean", contents)
+        self.assertIn("exact pre-preview mixed-language storage draft", contents)
+        self.assertIn("never a back-translation", contents)
+        self.assertIn("lost canonical state", contents)
         self.assertIn("Do not query Jira", contents)
         self.assertNotIn("TODO", contents)
 

@@ -1,6 +1,6 @@
 ---
 name: jira-auto-start
-description: Classify every assigned unresolved Jira todo as startable, needs-plan, blocked, or approval-required; execute the first startable issue or collaboratively refine the first needs-plan issue under a planning lock when none can start. Use when the user asks Jira to find and automatically advance one eligible task.
+description: Classify every assigned unresolved Jira todo as startable, needs-plan, blocked, or approval-required; execute the first startable issue or refine the first needs-plan issue through a complete Korean approval view backed by the exact mixed-language Jira draft when none can start. Use when the user asks Jira to find and automatically advance one eligible task.
 ---
 
 # Jira Auto Start
@@ -56,12 +56,12 @@ Announce the selected key, its classification, understood scope, material risks,
 
 1. Re-read the selected issue and require its status to equal `configuredStatuses.todo`.
 2. Move it to `progress` through the project transition tool, re-read it, verify the planning lock, and capture its `updated` value. Do not create a branch or worktree yet.
-3. Follow the `jira-plan` mixed-language contract: Korean Jira title and QA section, English `Auto Start`, `Goal`, `Scope`, `Out of Scope`, `Completion Criteria`, `Validation Plan`, and `Dependencies and Risks` content.
-4. Show the complete draft and ask for explicit approval of either **plan only** or **plan update and auto-start**.
+3. Prepare the canonical `jira-plan` storage draft: Korean Jira title and QA section, English `Auto Start`, `Goal`, `Scope`, `Out of Scope`, `Completion Criteria`, `Validation Plan`, and `Dependencies and Risks` content.
+4. Read `references/korean-approval-preview.md`, retain that exact canonical draft, show its complete Korean approval view, and ask for explicit approval of either **plan only** or **plan update and auto-start**. Explain that approval writes the corresponding canonical mixed-language draft.
 5. After approval, call the project `update_description.py --mode replace-plan` with a temporary file and the captured `--expected-updated` value, remove the file, then re-read and verify the managed contract.
 6. For plan only, transition back to `todo`, verify, and stop. For plan update and auto-start, keep `progress` and continue with implementation.
 
-If the update fails, attempt to return to `todo` and verify. If rollback also fails, leave the issue in `progress` and report both failures. Never expire or steal a planning lock automatically. An interrupted planning session remains in `progress` until the user explicitly resumes or releases it, and every other session must continue excluding progress issues.
+If the update fails, attempt to return to `todo` and verify. If rollback also fails, leave the issue in `progress` and report both failures. Never expire or steal a planning lock automatically. An interrupted planning session remains in `progress` until the user explicitly resumes or releases it, and every other session must continue excluding progress issues. If the exact canonical draft behind the approved Korean view is unavailable or uncertain, regenerate both representations and request approval again before any Jira write.
 
 ## Execute The Selected Issue
 
