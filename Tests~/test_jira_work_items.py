@@ -14,6 +14,7 @@ sys.path.insert(0, str(TOOLS_DIR))
 from jira_work_items import (
     build_jql,
     load_config,
+    normalize_issue_links,
     query_work_item,
     query_work_items,
     write_json,
@@ -69,6 +70,38 @@ class FakeJiraReadApi:
                 "issuetype": {"name": "추가"},
                 "resolution": None,
                 "project": {"key": "MCC"},
+                "issuelinks": [
+                    {
+                        "type": {
+                            "name": "Blocks",
+                            "inward": "is blocked by",
+                            "outward": "blocks",
+                        },
+                        "inwardIssue": {
+                            "key": "MCC-1400",
+                            "fields": {
+                                "summary": "선행 패키지 작업",
+                                "status": {"name": "개발 완료"},
+                                "resolution": {"name": "Done"},
+                            },
+                        },
+                    },
+                    {
+                        "type": {
+                            "name": "Blocks",
+                            "inward": "is blocked by",
+                            "outward": "blocks",
+                        },
+                        "outwardIssue": {
+                            "key": "MCC-1500",
+                            "fields": {
+                                "summary": "후속 작업",
+                                "status": {"name": "해야 할 일"},
+                                "resolution": None,
+                            },
+                        },
+                    },
+                ],
             },
         }
 
@@ -148,11 +181,43 @@ class JiraWorkItemsTests(unittest.TestCase):
 
         self.assertEqual("MCC-1441", api.issue_key)
         self.assertIn("description", api.fields)
+        self.assertIn("issuelinks", api.fields)
         self.assertEqual("스킬 자동 설치", result["summary"])
         self.assertEqual("한글 설명\n안전 설치", result["description"])
         self.assertEqual("개발자", result["assignee"])
         self.assertEqual("MCC", result["project"])
         self.assertEqual("", result["resolution"])
+        self.assertEqual("needs-plan", result["descriptionContract"]["state"])
+        self.assertFalse(result["descriptionContract"]["structurallyComplete"])
+        self.assertEqual("개발 완료", result["configuredStatuses"]["done"])
+        self.assertEqual(
+            {
+                "key": "MCC-1400",
+                "direction": "inward",
+                "relation": "is blocked by",
+                "type": "Blocks",
+                "summary": "선행 패키지 작업",
+                "status": "개발 완료",
+                "resolution": "Done",
+            },
+            result["issueLinks"][0],
+        )
+        self.assertEqual("blocks", result["issueLinks"][1]["relation"])
+
+    def test_issue_link_normalization_excludes_the_current_issue_from_full_link(self) -> None:
+        links = [
+            {
+                "type": {"name": "Dependency", "inward": "depends on", "outward": "is required by"},
+                "inwardIssue": {"key": "MCC-1399", "fields": {"summary": "선행 작업"}},
+                "outwardIssue": {"key": "MCC-1441", "fields": {"summary": "현재 작업"}},
+            }
+        ]
+
+        result = normalize_issue_links(links, "MCC-1441")
+
+        self.assertEqual(1, len(result))
+        self.assertEqual("MCC-1399", result[0]["key"])
+        self.assertEqual("depends on", result[0]["relation"])
 
     def test_one_issue_json_preserves_korean(self) -> None:
         result = query_work_item(self.config, "MCC-1441", api=FakeJiraReadApi())

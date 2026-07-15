@@ -13,6 +13,8 @@ from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 
+from jira_description import parse_description_contract
+
 
 DEFAULT_CONFIG = Path("Tools/AI/jira/config.local.json")
 STATE_KEYS = {
@@ -176,6 +178,35 @@ def adf_to_text(node: Any) -> str:
     return rendered
 
 
+def normalize_issue_links(links: Any, current_key: str) -> list[dict[str, str]]:
+    """Return linked-issue evidence from the current issue's perspective."""
+    normalized = []
+    for link in links or []:
+        if not isinstance(link, dict):
+            continue
+        link_type = link.get("type") or {}
+        for field_name, direction in (("inwardIssue", "inward"), ("outwardIssue", "outward")):
+            linked_issue = link.get(field_name)
+            if not isinstance(linked_issue, dict):
+                continue
+            key = str(linked_issue.get("key", ""))
+            if not key or key.upper() == current_key.upper():
+                continue
+            values = linked_issue.get("fields") or {}
+            normalized.append(
+                {
+                    "key": key,
+                    "direction": direction,
+                    "relation": str(link_type.get(direction, "")),
+                    "type": str(link_type.get("name", "")),
+                    "summary": str(values.get("summary", "")),
+                    "status": str((values.get("status") or {}).get("name", "")),
+                    "resolution": str((values.get("resolution") or {}).get("name", "")),
+                }
+            )
+    return normalized
+
+
 def query_work_item(
     config: dict[str, Any],
     issue_key: str,
@@ -192,25 +223,34 @@ def query_work_item(
         "issuetype",
         "resolution",
         "project",
+        "issuelinks",
     ]
     api = api or JiraReadApi(config)
     issue = api.get_issue(issue_key, fields)
     values = issue.get("fields", {})
     key = str(issue.get("key", issue_key))
     base_url = str(config.get("jira_base_url", "")).rstrip("/")
+    description = adf_to_text(values.get("description")).strip()
     return {
         "key": key,
         "summary": str(values.get("summary", "")),
         "status": str((values.get("status") or {}).get("name", "")),
         "updated": str(values.get("updated", "")),
         "url": f"{base_url}/browse/{key}" if base_url and key else "",
-        "description": adf_to_text(values.get("description")).strip(),
+        "description": description,
+        "descriptionContract": parse_description_contract(description),
         "priority": str((values.get("priority") or {}).get("name", "")),
         "labels": [str(label) for label in values.get("labels") or []],
         "assignee": str((values.get("assignee") or {}).get("displayName", "")),
         "issueType": str((values.get("issuetype") or {}).get("name", "")),
         "resolution": str((values.get("resolution") or {}).get("name", "")),
         "project": str((values.get("project") or {}).get("key", "")),
+        "configuredStatuses": {
+            state: str(status)
+            for state, status in (config.get("statuses") or {}).items()
+            if state in {"todo", "progress", "done"}
+        },
+        "issueLinks": normalize_issue_links(values.get("issuelinks"), key),
     }
 
 

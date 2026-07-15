@@ -32,14 +32,16 @@ Optional consuming-project commands under `Tools/AI/jira/`:
 
 ```bash
 python3 Tools/AI/jira/create_issue.py --summary "제목" --description "설명"
-python3 Tools/AI/jira/update_description.py MCC-1234 --mode append-requirements --text "추가 요구사항"
+python3 Tools/AI/jira/update_description.py MCC-1234 --mode append-requirements --text "Keep the current behavior."
 python3 Tools/AI/jira/update_description.py MCC-1234 --mode prepend-qa --text "QA 확인 내용"
+python3 Tools/AI/jira/update_description.py MCC-1234 --mode replace-plan --file approved-description.md --expected-updated "2026-07-15T02:22:47.217+0000"
+python3 Tools/AI/jira/transition_issue.py MCC-1234 --to todo
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --to progress
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done
+python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
 ```
 
-Explain that create, description update, and transition commands write only when project configuration and matching `allow_*` gates permit them. `--list` is read-only. Recommend `--help` for exact installed flags.
+Explain that create validates the managed contract, and create, description update, and transition commands write only when project configuration and matching `allow_*` gates permit them. Managed plan replacement requires the progress planning lock and matching `updated` value; done requires a PR URL and verified Korean QA completion record. `--list` is read-only. Jira titles and QA content are Korean, other newly managed description content is English, and existing issues are not bulk-migrated. Recommend `--help` for exact installed flags.
 
 Keep credentials in environment variables or ignored local config, never display or request Jira tokens in chat, and read repository guidance before advising writes. List these menus:
 

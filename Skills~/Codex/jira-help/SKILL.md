@@ -41,16 +41,18 @@ When the consuming project provides `Tools/AI/jira/`, explain these write-capabl
 
 ```bash
 python3 Tools/AI/jira/create_issue.py --summary "제목" --description "설명"
-python3 Tools/AI/jira/update_description.py MCC-1234 --mode append-requirements --text "추가 요구사항"
+python3 Tools/AI/jira/update_description.py MCC-1234 --mode append-requirements --text "Keep the current behavior."
 python3 Tools/AI/jira/update_description.py MCC-1234 --mode prepend-qa --text "QA 확인 내용"
+python3 Tools/AI/jira/update_description.py MCC-1234 --mode replace-plan --file approved-description.md --expected-updated "2026-07-15T02:22:47.217+0000"
+python3 Tools/AI/jira/transition_issue.py MCC-1234 --to todo
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --to progress
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done
+python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
 ```
 
-- `create_issue.py`: write; create an assigned issue using project defaults and, when configured, place it in the active sprint and todo status.
-- `update_description.py`: write; append confirmed requirements or prepend QA notes without overwriting the full description.
-- `transition_issue.py --to progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled.
+- `create_issue.py`: write; validate the managed description contract, then create an assigned issue using project defaults and, when configured, place it in the active sprint and todo status.
+- `update_description.py`: write; append confirmed English requirements, prepend Korean QA notes, or replace only an explicitly approved managed plan under optimistic-concurrency and planning-lock checks.
+- `transition_issue.py --to todo|progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled. Done also requires a PR URL and a verified QA completion record.
 - `transition_issue.py --list`: read-only; list transitions currently available for the issue.
 - Recommend each command's `--help` for exact flags in the installed version.
 
@@ -59,6 +61,7 @@ python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
 - Resolve ignored project configuration from `Tools/AI/jira/config.local.json`, an explicit `--config`, or `AI_JIRA_CONFIG` as documented by the package.
 - Keep `JIRA_EMAIL` and `JIRA_API_TOKEN` in environment variables or ignored local config. Never display or request a token in shared chat.
 - State that write commands may be blocked by `dry_run` or individual `allow_*` gates. Access to a command is not authorization to run it.
+- Explain that Jira titles and QA content are Korean while other newly managed description content is English; existing issues are not migrated in bulk.
 - Read the consuming repository's `AGENTS.md`, `CLAUDE.md`, and linked Jira guidance before advising a state-changing workflow.
 
 ## Unity Menus

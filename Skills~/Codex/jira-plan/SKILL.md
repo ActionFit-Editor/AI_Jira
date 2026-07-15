@@ -1,0 +1,88 @@
+---
+name: jira-plan
+description: Research and discuss a development plan, obtain explicit approval for a Korean Jira title and mixed-language managed description, then create a new todo issue or safely refine an existing planning-locked issue without implementing it. Use for new Jira-ready plans and for todo issues classified as needs-plan.
+---
+
+# Jira Plan
+
+Turn a new idea into one approved Jira todo issue, or refine one explicitly selected issue under a planning lock. Do not implement the planned work in this skill.
+
+## Research And Discuss
+
+1. Read `AGENTS.md`, `CLAUDE.md`, and linked repository guidance before proposing project work.
+2. Inspect relevant source, documentation, and configuration with read-only commands so the plan reflects the current repository rather than assumptions.
+3. When Jira access is configured, run `python3 .agents/skills/jira-plan/scripts/ai_jira_cli.py list --state todo --format json` and `python3 .agents/skills/jira-plan/scripts/ai_jira_cli.py list --state progress --format json`. Read details only when needed to identify a likely duplicate, dependency, or overlap.
+4. Ask only questions whose answers materially change scope, behavior, safety, or acceptance criteria. Offer a recommendation and tradeoff when several reasonable approaches exist.
+5. Resolve the goal, current problem, included and excluded scope, ordered implementation approach, completion conditions, validation, dependencies, risks, and rollout or migration implications.
+
+Do not edit repository files, create a worktree, or start implementation while planning. New-issue planning remains read-only. Existing-issue refinement may use only the planning-lock transition and approved managed-description update described below.
+
+## Prepare The Jira Draft
+
+Write the Jira title in Korean. Keep `## QA 확인 필요 사항` and all of its content in Korean. Write every other managed heading and its content in English. Preserve technical identifiers such as class names, file paths, commands, config keys, and branch names. Explain or translate the stored plan in the user's language when requested.
+
+Use this complete description structure:
+
+```md
+## QA 확인 필요 사항
+
+### 계획
+- 확인 항목:
+
+---
+
+## Auto Start
+- Allowed: yes
+- Prerequisites: none
+- Decisions Required: none
+
+## Goal
+
+## Scope
+
+## Out of Scope
+
+## Completion Criteria
+
+## Validation Plan
+
+## Dependencies and Risks
+```
+
+Keep the three `Auto Start` fields and every managed heading. Give every English section content and use `None.` when a section has no applicable item. Use `none` when no prerequisite or decision exists. Leave the Korean `확인 항목:` value blank when there is no planned QA check. Do not add default fields for allowed paths, forbidden paths, external state, or sensitive/destructive work; infer those boundaries from repository guidance and the actual scope.
+
+Make implementation steps ordered and concrete. Make completion conditions observable and validation steps executable. Identify unresolved decisions instead of hiding them in the plan.
+
+Show the full final title and description to the user and ask for explicit approval of the requested Jira create or managed-plan update. Discussion, partial approval, or approval of only the approach does not authorize a Jira write.
+
+## Refine An Existing Needs-Plan Issue
+
+Use this path only for an explicitly selected assigned unresolved todo issue whose description needs planning.
+
+1. Re-read the issue and require its status to equal `configuredStatuses.todo`.
+2. Move it to `progress` with the consuming project's transition tool, re-read it, verify the status, and record the returned `updated` value. This status is a planning lock; other sessions must exclude it.
+3. Discuss the missing scope or decisions and prepare the complete mixed-language description above. Show the full draft and ask whether the user approves **plan only** or **plan update and implementation**.
+4. After explicit approval, write the draft to a temporary UTF-8 file outside the repository and call `Tools/AI/jira/update_description.py <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value>`. Remove the temporary file.
+5. Re-read the issue and verify the approved managed contract. For plan only, move it back to `todo` and verify. For plan update and implementation, leave it in `progress` and return control to the explicitly invoked run or auto-start workflow; this skill still does not implement.
+
+The project tool must preserve existing Korean QA completion records and unmanaged sections. If the managed update fails, attempt to return the issue to `todo`, re-read it, and report both failures if rollback also fails. Never expire or steal a planning lock automatically. If collaboration is interrupted, leave the issue in `progress` until the user explicitly resumes or releases it.
+
+## Create After Approval
+
+1. Re-read the approved title and description without silently revising them.
+2. Use the consuming project's `Tools/AI/jira/create_issue.py` with `--summary` and a temporary UTF-8 `--description-file` outside the repository, then remove that temporary file. Do not call Jira REST directly.
+3. Let the project tool enforce assignment to the authenticated user, configured todo status, active-sprint behavior, dry-run mode, and write gates.
+4. Report the created issue key and URL, or the exact blocker when configuration, credentials, sprint resolution, or write gates prevent creation.
+5. Leave the issue in todo. Do not create a branch, transition to progress, implement, commit, push, or open a pull request.
+
+Do not implement the planned issue in this invocation.
+
+If a likely duplicate exists, present it and obtain the user's decision before creating another issue. If the user supplies an existing issue key, refine it only through the project-approved plan-specific operation above; never perform an unrestricted description overwrite.
+
+## Boundaries
+
+- Create at most one new issue per approved draft.
+- Never create labels, epics, subtasks, Jira Advanced Roadmaps Plans, or backlog exceptions unless the user explicitly requests them and repository tooling supports them.
+- Never expose credentials or print ignored Jira config contents.
+- Never migrate existing Jira descriptions in bulk.
+- Use `$jira-run` or `$jira-auto-start` in a later invocation when the user wants implementation.

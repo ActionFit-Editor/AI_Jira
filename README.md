@@ -1,6 +1,6 @@
 # AI Jira (com.actionfit.ai-jira)
 
-ActionFit AI agents use this package for project-local Jira skills, read-only work-item discovery, Jira lifecycle guidance, and safe local automation.
+ActionFit AI agents use this package for project-local Jira planning, read-only work-item discovery, automatic bounded task pickup, Jira lifecycle guidance, and safe local automation.
 
 ## Current Scope
 
@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.11"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.13"
   }
 }
 ```
@@ -26,12 +26,16 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 
 AI Jira registers schema v2 package-owned sources with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit read-only/write-capable access through `Skills~/manifest.json`. After Unity resolves AI Jira and its Custom Package Manager dependency, the common installer synchronizes them into the consuming project:
 
-- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, and `.agents/skills/jira-run`.
-- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, and `.claude/skills/jira-run`.
+- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, `.agents/skills/jira-plan`, `.agents/skills/jira-auto-start`, and `.agents/skills/jira-run`.
+- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, `.claude/skills/jira-plan`, `.claude/skills/jira-auto-start`, and `.claude/skills/jira-run`.
 
 The installer generates `PACKAGE_SKILLS.md` inside each installed `jira-help` from AI Jira package metadata, the manifest, and agent-specific `SKILL.md` descriptions. `jira-help` reads that inventory first, so package identity, every related skill, its `$name` invocation, when-to-use description, and access boundary stay synchronized without a second hard-coded skill list.
 
-`jira-help` explains the generated inventory, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates; `progress` issues and their existing branches, worktrees, or pull requests are overlap and exclusion evidence. A progress issue is never promoted into the recommendation order unless the user explicitly asks about that specific issue, and the skill remains read-only even then. `jira-run` executes only an issue explicitly selected by the user and follows the consuming repository's approval, worktree, validation, PR, and Jira lifecycle rules. Codex disables implicit invocation for `jira-run`; Claude ships it with `disable-model-invocation: true`.
+`jira-help` explains the generated inventory, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates; `progress` issues and their existing branches, worktrees, or pull requests are overlap and exclusion evidence. A progress issue is never promoted into the recommendation order unless the user explicitly asks about that specific issue, and the skill remains read-only even then.
+
+`jira-plan` researches and discusses a development idea, shows a Korean title plus a mixed-language managed description, and creates one assigned `todo` issue only after full-draft approval. It can also refine one explicitly selected needs-plan issue under a verified progress planning lock without implementing it. `jira-auto-start` leaves the read-only `jira-todo` overview unchanged, classifies every assigned unresolved `todo` as startable, needs-plan, blocked, or approval-required, executes the first startable item, and only when none is startable offers collaborative refinement for the first needs-plan item. A prerequisite counts as complete only when its Jira resolution is set or its status matches configured `done`. Sensitive, destructive, publishing, deployment, production, and credential work remains separately approved. `jira-run` handles an issue explicitly selected by the user and uses the same planning-lock protocol when its contract is incomplete.
+
+All three write-capable skills are manual-only: Codex disables implicit invocation and Claude ships them with `disable-model-invocation: true`.
 
 The package copies files instead of creating links so it also supports Claude Code versions before skill-directory symlink support. Installed skills contain only instructions and a read-only package-tool locator; credentials and ignored Jira config are never copied.
 
@@ -54,7 +58,7 @@ python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state todo --
 python3 Packages/com.actionfit.ai-jira/Tools~/get_work_item.py MCC-1234 --format json
 ```
 
-`--state all` includes the configured `todo` and `progress` states, not completed work. It remains available for general read-only callers, but `jira-todo` does not use it for candidate selection: the skill calls `--state todo` for recommendations and `--state progress` separately for overlap detection. Every query automatically limits results to the configured project, `assignee = currentUser()`, and unresolved issues, then sorts by most recently updated.
+`--state all` includes the configured `todo` and `progress` states, not completed work. It remains available for general read-only callers, but `jira-todo` does not use it for candidate selection: the skill calls `--state todo` for recommendations and `--state progress` separately for overlap detection. Every query automatically limits results to the configured project, `assignee = currentUser()`, and unresolved issues, then sorts by most recently updated. Detail JSON includes `configuredStatuses`, normalized `issueLinks`, and `descriptionContract`. The contract reports managed-section completeness, the three Auto Start fields, explicit prerequisite keys, unresolved decisions, and deterministic `ready`, `needs-plan`, or `blocked` description state. Repository safety, overlap, and external approval remain higher-level skill judgments.
 
 Text output includes the issue key, status, title, and update time. JSON output adds the resolved status filters, JQL, issue URL, pagination metadata when Jira returns it, and preserves Korean text with UTF-8 rather than `\u` escapes.
 
@@ -79,6 +83,51 @@ Run the package tests without Unity:
 ```bash
 python3 -m unittest discover Packages/com.actionfit.ai-jira/Tests~ -p "test_*.py"
 ```
+
+## Managed Description Contract
+
+AI-created Jira titles are Korean. The QA heading, planned QA checks, and completion records are also Korean and remain at the top. Every other newly managed heading and body is English:
+
+```md
+## QA 확인 필요 사항
+
+### 계획
+- 확인 항목:
+
+---
+
+## Auto Start
+- Allowed: yes
+- Prerequisites: none
+- Decisions Required: none
+
+## Goal
+
+## Scope
+
+## Out of Scope
+
+## Completion Criteria
+
+## Validation Plan
+
+## Dependencies and Risks
+```
+
+Keep exactly one Korean `### 계획`, all three Auto Start fields, and every English heading. Each English section must contain content; use `None.` when no item applies.
+
+Existing Jira descriptions are never bulk-migrated. A needs-plan issue moves from todo to progress as a planning lock before collaboration. After the user approves the complete draft, the consuming project may update only the managed plan with the independent `allow_description_plan_refinement` gate, the captured Jira `updated` value, and the verified progress status:
+
+```bash
+python3 Tools/AI/jira/update_description.py MCC-1234 \
+  --mode replace-plan \
+  --file approved-description.md \
+  --expected-updated "2026-07-15T02:22:47.217+0000"
+```
+
+The operation preserves existing QA completion records and unmanaged top-level sections. Plan-only work returns to todo. Plan-and-implementation remains progress. Update failure attempts todo rollback; locks never expire or get stolen automatically.
+
+The project `create_issue.py` validates this managed contract before sending a Jira write, so incomplete or unresolved new drafts fail locally instead of creating malformed todo work.
 
 ## Personal Jira Credentials
 
@@ -136,10 +185,10 @@ Use:
 
 ```bash
 python3 Tools/AI/jira/update_description.py MCC-1234 --mode prepend-qa --file qa-notes.md
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done
+python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
 ```
 
-If Jira writes are disabled, credentials are missing, or the configured transition does not exist, the AI must report the blocker instead of silently leaving the issue in progress.
+The done transition verifies that the issue is in progress, the Korean QA completion record exists at the top, and a PR URL was supplied. If Jira writes are disabled, credentials are missing, QA verification fails, or the configured transition does not exist, the AI must report the blocker instead of silently leaving the issue in progress.
 
 ## Legacy Package
 

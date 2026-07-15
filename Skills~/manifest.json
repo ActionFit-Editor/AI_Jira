@@ -16,6 +16,18 @@
       "access": "read-only"
     },
     {
+      "name": "jira-plan",
+      "agents": ["codex", "claude"],
+      "includeShared": true,
+      "access": "write-capable"
+    },
+    {
+      "name": "jira-auto-start",
+      "agents": ["codex", "claude"],
+      "includeShared": true,
+      "access": "write-capable"
+    },
+    {
       "name": "jira-run",
       "agents": ["codex", "claude"],
       "includeShared": true,

@@ -21,7 +21,11 @@ class JiraHelpSkillTests(unittest.TestCase):
         self.assertIn("detail MCC-1234", contents)
         self.assertIn("create_issue.py", contents)
         self.assertIn("update_description.py", contents)
+        self.assertIn("replace-plan", contents)
+        self.assertIn("expected-updated", contents)
         self.assertIn("transition_issue.py", contents)
+        self.assertIn("--to todo", contents)
+        self.assertIn("--pr-url", contents)
         self.assertIn("Do not query Jira", contents)
         self.assertNotIn("TODO", contents)
 
@@ -36,7 +40,11 @@ class JiraHelpSkillTests(unittest.TestCase):
         self.assertIn("detail MCC-1234", contents)
         self.assertIn("create_issue.py", contents)
         self.assertIn("update_description.py", contents)
+        self.assertIn("replace-plan", contents)
+        self.assertIn("expected-updated", contents)
         self.assertIn("transition_issue.py", contents)
+        self.assertIn("--to todo", contents)
+        self.assertIn("--pr-url", contents)
         self.assertIn("Do not query Jira", contents)
         self.assertNotIn("TODO", contents)
 

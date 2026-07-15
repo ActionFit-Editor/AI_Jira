@@ -18,18 +18,17 @@ MonoBehaviour:
   _repositoryVisibility: 0
   _owner: "\uC1A1\uC81C\uC6B0"
   _status: verified
-  _description: ActionFit AI agents use this package for project-local Jira skills,
-    read-only work-item discovery, lifecycle guidance, and safe automation.
-  _releaseNote: "- `Skills~/manifest.json`\uC744 \uC2A4\uD0A4\uB9C8 v2\uB85C \uC804\uD658\uD558\uACE0
-    `skillPrefix: jira`, \uD544\uC218 `jira-help`, \uC2A4\uD0AC\uBCC4 \uC77D\uAE30/\uC4F0\uAE30
-    \uAC00\uB2A5 \uBC94\uC704\uB97C \uBA85\uC2DC\uD588\uC2B5\uB2C8\uB2E4.\n- `jira-help`\uAC00
-    \uC124\uCE58 \uC2DC \uC0DD\uC131\uB418\uB294 `PACKAGE_SKILLS.md`\uB97C \uBA3C\uC800
-    \uC77D\uC5B4 \uD328\uD0A4\uC9C0 \uC124\uBA85, \uBAA8\uB4E0 \uAD00\uB828 \uC2A4\uD0AC,
-    `$name` \uD638\uCD9C\uBC95\uACFC \uC811\uADFC \uBC94\uC704\uB97C \uC911\uBCF5
-    \uC5C6\uC774 \uC548\uB0B4\uD569\uB2C8\uB2E4.\n- `com.actionfit.custompackagemanager`
-    1.1.71\uC744 \uC758\uC874\uD574 \uC0DD\uC131 \uC778\uBCA4\uD1A0\uB9AC\uC640 \uC5C4\uACA9\uD55C
-    help \uACC4\uC57D \uAC80\uC99D\uC744 \uACF5\uD1B5 \uC124\uCE58 \uC5D4\uC9C4\uC5D0\uC11C
-    \uC0AC\uC6A9\uD569\uB2C8\uB2E4.\n- \uAE30\uC874 `UserSettings/AIJira/skill-install-state.json`,
-    \uC0AC\uC6A9\uC790 \uC218\uC815 \uC2A4\uD0AC \uBCF4\uC874, `jira-run` \uC218\uB3D9
-    \uD638\uCD9C \uC81C\uD55C\uC740 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4."
+  _description: ActionFit AI agents use this package for Jira planning, work discovery,
+    automatic bounded task pickup, lifecycle guidance, and safe automation.
+  _releaseNote: "- Jira \uC81C\uBAA9\uACFC \uCD5C\uC0C1\uB2E8 QA \uC601\uC5ED\uC740
+    \uD55C\uAD6D\uC5B4, \uB098\uBA38\uC9C0 \uAD00\uB9AC\uD615 Description\uC740 \uC601\uC5B4\uB85C
+    \uC800\uC7A5\uD558\uB294 \uACC4\uC57D\uC744 \uCD94\uAC00\uD569\uB2C8\uB2E4.\n-
+    Jira \uC0C1\uC138 \uC870\uD68C\uAC00 `descriptionContract`\uB97C \uC81C\uACF5\uD558\uACE0
+    \uC790\uB3D9 \uC2E4\uD589\uC774 `startable`, `needs-plan`, `blocked`, `approval-required`\uB85C
+    \uBD84\uB958\uD569\uB2C8\uB2E4.\n- `needs-plan` \uC791\uC5C5\uC740 `progress`
+    \uACC4\uD68D \uC7A0\uAE08\uACFC `updated` \uCDA9\uB3CC \uAC80\uC99D\uC744 \uAC70\uCCD0
+    \uC2B9\uC778\uB41C \uACC4\uD68D \uC601\uC5ED\uB9CC \uC548\uC804\uD558\uAC8C \uAC31\uC2E0\uD569\uB2C8\uB2E4.\n-
+    QA \uC644\uB8CC \uAE30\uB85D\uACFC PR URL\uC744 \uAC80\uC99D\uD55C \uB4A4\uC5D0\uB9CC
+    `done` \uC804\uD658\uC744 \uD5C8\uC6A9\uD558\uBA70 Codex\xB7Claude \uC2A4\uD0AC\uACFC
+    \uBB38\uC11C\uB97C \uB3D9\uAE30\uD654\uD569\uB2C8\uB2E4."
   _dependenciesOverride: 
