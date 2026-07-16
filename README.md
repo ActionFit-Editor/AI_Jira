@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.17"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.18"
   }
 }
 ```
@@ -58,7 +58,7 @@ The package copies files instead of creating links so it also supports Claude Co
 
 Managed state is stored at ignored project-local `UserSettings/ActionFitPackageManager/skill-install-state.json`. A missing managed target is restored, and an unchanged managed target is refreshed when package content changes. Existing unmanaged targets and user-modified managed targets are preserved with a warning. Automatic install never writes to a user home/global skill directory, never deletes a skill, and is skipped in Unity batch mode. Explicit removal deletes only unchanged managed targets and disables automatic recreation until the install/refresh command is used again.
 
-Existing `UserSettings/AIJira/skill-install-state.json` remains in place as migration input. Custom Package Manager adopts a legacy target only when its current hash still matches the recorded installed hash and also preserves a previously disabled automatic-install preference. AI Jira depends on Custom Package Manager `1.1.91` so direct AI Jira installation receives schema v2 inventory generation through the same single installation engine used by every ActionFit package instead of activating a Jira-specific second writer.
+Existing `UserSettings/AIJira/skill-install-state.json` remains in place as migration input. Custom Package Manager adopts a legacy target only when its current hash still matches the recorded installed hash and also preserves a previously disabled automatic-install preference. AI Jira depends on Custom Package Manager `1.1.96` so direct AI Jira installation receives schema v2 inventory generation through the same single installation engine used by every ActionFit package instead of activating a Jira-specific second writer.
 
 ## AI Guide
 
