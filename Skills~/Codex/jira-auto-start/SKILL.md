@@ -50,7 +50,7 @@ Reject rather than reinterpret an issue whose safe implementation depends on ass
 
 Select the first `startable` issue in the todo query's existing order. If none is startable, select the first `needs-plan` issue in that order and use the planning-lock workflow below. If only `blocked` or `approval-required` issues remain, stop without writes. Do not promote a progress issue, reorder candidates by guessed business value, or advance more than one issue in a single invocation.
 
-Announce the selected key, its classification, understood scope, material risks, and validation plan before any write. The explicit skill invocation satisfies normal requirement confirmation only for one `startable` bounded issue. A `needs-plan` issue still requires explicit approval of the complete refined description and whether to stop after planning or continue into implementation.
+Announce the selected issue first with the exact standalone user-visible commentary line `🎫 Jira: <ISSUE-KEY>`, then report its classification, understood scope, material risks, and validation plan. The standalone Jira line must appear before any Jira write, worktree preparation, or repository mutation. The explicit skill invocation satisfies normal requirement confirmation only for one `startable` bounded issue. A `needs-plan` issue still requires explicit approval of the complete refined description and whether to stop after planning or continue into implementation.
 
 ## Refine A Needs-Plan Issue
 
@@ -65,13 +65,14 @@ If the update fails, attempt to return to `todo` and verify. If rollback also fa
 
 ## Execute The Selected Issue
 
-1. Recheck existing branches and pull requests for the selected key and choose the canonical branch according to repository guidance.
-2. Prepare the required isolated worktree. For a directly startable issue, transition Jira to the configured progress status only when the branch/worktree plan exists and implementation is immediately starting. A refined issue already holds the verified planning lock.
-3. Use only consuming-project Jira write tools and enabled gates. Missing tools, dry-run mode, or disabled gates are blockers; never call Jira directly to bypass them.
-4. Implement only the selected issue, preserve unrelated changes, update required documentation, and run proportionate validation.
-5. Review the complete diff, commit without an AI co-author trailer, push, and create the pull request using repository rules.
-6. After the PR exists, prepend Korean QA notes when enabled, verify the QA completion record, then transition Jira to the configured internal done status with the PR URL. Never move the issue to QA.
-7. Report the selected issue, branch, worktree, PR, Jira state, validation, and remaining blockers in the repository's required format.
+1. Recheck existing branches and pull requests for the selected key and choose the canonical branch according to repository guidance. Before a progress transition or worktree acquisition, verify that the planned canonical branch name contains the exact selected issue key. Stop on a mismatch. Do not create a branch for a needs-plan issue until implementation is approved.
+2. For a directly startable issue, transition Jira to the configured progress status only after the visible Jira announcement and Jira-key-verified branch/worktree plan exist and implementation is immediately starting. A refined issue already holds the verified planning lock.
+3. Prepare the required isolated worktree. Before repository edits, read the actual checked-out branch and verify that it still contains the exact selected issue key; stop if it differs from the canonical plan.
+4. Use only consuming-project Jira write tools and enabled gates. Missing tools, dry-run mode, or disabled gates are blockers; never call Jira directly to bypass them.
+5. Implement only the selected issue, preserve unrelated changes, update required documentation, and run proportionate validation.
+6. Review the complete diff, commit without an AI co-author trailer, push, and create the pull request using repository rules.
+7. After the PR exists, prepend Korean QA notes when enabled, verify the QA completion record, then transition Jira to the configured internal done status with the PR URL. Never move the issue to QA.
+8. Report the selected issue key, branch, worktree, PR, Jira state, validation, and remaining blockers in the repository's required format.
 
 If work becomes unclear or blocked after the progress transition, stop before speculative changes, leave the issue in progress, and report the exact blocker.
 

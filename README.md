@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.15"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.16"
   }
 }
 ```
@@ -38,6 +38,21 @@ The installer generates `PACKAGE_SKILLS.md` inside each installed `jira-help` fr
 All planning approval entry points show the complete user-visible plan in Korean and preserve technical identifiers. Jira still stores the Korean title and QA section plus English managed sections. Approval writes the exact canonical storage draft prepared before the preview; it never back-translates the Korean view. Requested revisions update the canonical draft first and require a regenerated complete Korean view and new approval. If interruption or context loss makes the canonical draft unavailable or uncertain, the workflow regenerates both representations and asks again instead of writing Jira. The English storage body is shown only when the user explicitly asks for it.
 
 All three write-capable skills are manual-only: Codex disables implicit invocation and Claude ships them with `disable-model-invocation: true`.
+
+## Visible Jira Identity
+
+`jira-run` and `jira-auto-start` print the selected issue as the exact standalone line `🎫 Jira: <ISSUE-KEY>` before any Jira write, worktree preparation, or repository mutation. Before implementation they also require the planned canonical branch to contain that exact key, and they verify the actual checked-out branch again before editing files. A mismatch stops the workflow instead of allowing work on another issue's branch.
+
+Codex can also expose the Jira key in the terminal window or tab title through its supported Git branch title item:
+
+```toml
+[tui]
+terminal_title = ["spinner", "git-branch", "project"]
+```
+
+Keep this setting in user-global `~/.codex/config.toml` when it should apply across projects, or in trusted project `.codex/config.toml` when the repository can safely own that path. The setting contains no project path: Codex resolves `project` and `git-branch` from the current working directory. The title shows the full branch, so the existing `<ISSUE-KEY>-<short-english-slug>` branch contract supplies the visible Jira key. It does not support Jira-key-only extraction or conditional pre-branch display, and AI Jira does not emit raw OSC title sequences or edit global Codex configuration during normal task execution.
+
+Planning-only and read-only flows keep the relevant Jira key visible in their response but do not create branches or worktrees solely for title display. Claude follows the same announcement and branch-key verification rules without claiming Codex terminal-title behavior. A new Codex session may be required after changing the TUI configuration.
 
 The package copies files instead of creating links so it also supports Claude Code versions before skill-directory symlink support. Installed skills contain only instructions and a read-only package-tool locator; credentials and ignored Jira config are never copied.
 

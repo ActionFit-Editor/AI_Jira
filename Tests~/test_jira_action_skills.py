@@ -110,6 +110,37 @@ class JiraActionSkillTests(unittest.TestCase):
             self.assertIn("QA", contents)
             self.assertIn("PR URL", contents)
 
+    def test_run_and_auto_start_announce_and_verify_visible_jira_identity(self) -> None:
+        for agent in ("Codex", "Claude"):
+            for name in ("jira-run", "jira-auto-start"):
+                contents = self._read_skill(agent, name)
+
+                self.assertIn("`🎫 Jira: <ISSUE-KEY>`", contents)
+                self.assertIn("before any Jira write, worktree preparation, or repository mutation", contents)
+                self.assertIn("planned canonical branch name contains the exact selected issue key", contents)
+                self.assertIn("actual checked-out branch", contents)
+                self.assertIn("before repository edits", contents.lower())
+
+    def test_package_docs_explain_codex_terminal_title_boundary(self) -> None:
+        for path in (PACKAGE_ROOT / "README.md", PACKAGE_ROOT / "AI_GUIDE.md"):
+            contents = path.read_text(encoding="utf-8")
+
+            self.assertIn('terminal_title = ["spinner", "git-branch", "project"]', contents)
+            self.assertIn("full", contents.lower())
+            self.assertIn("branch", contents.lower())
+            self.assertIn("raw OSC", contents)
+            self.assertIn("Planning", contents)
+            self.assertIn("read-only", contents)
+
+    def test_help_skills_explain_visible_identity_configuration(self) -> None:
+        for agent in ("Codex", "Claude"):
+            contents = self._read_skill(agent, "jira-help")
+
+            self.assertIn("`🎫 Jira: <ISSUE-KEY>`", contents)
+            self.assertIn('terminal_title = ["spinner", "git-branch", "project"]', contents)
+            self.assertIn("key-only extraction", contents)
+            self.assertIn("raw OSC", contents)
+
     def test_representative_approval_fixtures_preserve_complete_korean_view_and_payload_source(self) -> None:
         fixture = json.loads(APPROVAL_FIXTURE.read_text(encoding="utf-8"))
         canonical = fixture["canonicalDraft"]

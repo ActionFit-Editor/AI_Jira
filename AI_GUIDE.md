@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.15`
+- Current package version at generation time: `1.0.16`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -41,6 +41,9 @@ Read this file when:
 - Use `Tools~/list_work_items.py` for direct Jira work-list retrieval. `--state todo` reads the configured todo status, `--state progress` reads planning-locked or actively implemented work, and `--state all` combines todo and progress while excluding completed work.
 - `jira-todo` must query `todo` and `progress` separately. Only `todo` results may be recommended as new work; `progress` results are overlap, dependency, or exclusion context only.
 - `jira-auto-start` must query `todo` and `progress` separately, evaluate every todo issue in query order, and report each issue as `startable`, `needs-plan`, `blocked`, or `approval-required` with evidence. It executes the first startable issue; only when none is startable may it acquire a planning lock for the first needs-plan issue. It may recognize prerequisites only from inward blocking/dependency links or issue keys explicitly listed in a prerequisite section; arbitrary references and outward `blocks` links are not prerequisites. Every declared prerequisite must be read and have either a non-empty resolution or the configured `done` status. Missing, unreadable, todo, progress, unknown, or ambiguous prerequisites make the candidate blocked.
+- `jira-run` and `jira-auto-start` must emit the exact standalone user-visible line `🎫 Jira: <ISSUE-KEY>` immediately after selecting the issue and before any Jira write, worktree preparation, or repository mutation. Resolve the canonical implementation branch and require its name to contain the exact selected issue key before progress transition or worktree acquisition, then verify the actual checked-out branch again before repository edits. Stop on either mismatch instead of working on another issue's branch.
+- Planning-only and read-only Jira flows must keep the relevant issue key visible in their response, but must not create a branch or worktree solely to populate a terminal title.
+- Codex terminal-title visibility is an optional user or trusted-project configuration layered on the existing Jira branch contract. Under `[tui]`, set `terminal_title = ["spinner", "git-branch", "project"]`; it displays the full Git branch, so `<ISSUE-KEY>-<slug>` naturally exposes the key. AI Jira must not mutate user-global Codex configuration during normal task execution, emit raw OSC title sequences, promise key-only extraction, or claim a Jira key can appear before an implementation branch exists. Claude follows the announcement and branch-verification semantics without claiming Codex TUI ownership.
 - The remaining automatic-pickup gate requires `descriptionContract.state=ready`, a bounded issue, and no unresolved external input, separate sensitive/destructive approval, publishing, deployment, production operation, or overlap with active work. Explicit invocation counts as requirement confirmation only for one startable issue. A needs-plan issue still requires explicit approval of its complete refined description and whether to stop after planning or continue implementation.
 - An existing branch, worktree, or pull request for a `progress` issue confirms that the issue is already active. It must not cause the skill to recommend continuing that issue unless the user explicitly asks about that specific work.
 - Keep `--state all` available for general read-only API callers, but do not use it as the `jira-todo` candidate source.
