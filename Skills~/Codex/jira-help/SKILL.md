@@ -50,7 +50,7 @@ python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done --pr-url "https://g
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
 ```
 
-- `create_issue.py`: write; validate the managed description contract, then create an assigned issue using project defaults and, when configured, place it in the active sprint and todo status.
+- `create_issue.py`: write; validate the managed description contract, require the current active sprint, then report success only after the assigned issue's active-sprint membership and todo status are verified.
 - `update_description.py`: write; append confirmed English requirements, prepend Korean QA notes, or replace only an explicitly approved managed plan under optimistic-concurrency and planning-lock checks.
 - `transition_issue.py --to todo|progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled. Done also requires a PR URL and a verified QA completion record.
 - `transition_issue.py --list`: read-only; list transitions currently available for the issue.
