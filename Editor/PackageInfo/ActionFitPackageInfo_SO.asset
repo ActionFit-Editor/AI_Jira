@@ -20,14 +20,11 @@ MonoBehaviour:
   _status: verified
   _description: ActionFit AI agents use this package for Jira planning, work discovery,
     automatic bounded task pickup, lifecycle guidance, and safe automation.
-  _releaseNote: '- `jira-run` and `jira-auto-start` announce the selected issue as
-    `Jira: <ISSUE-KEY>` before Jira writes, worktree preparation, or repository edits.
-
-    -
-    Planned and checked-out implementation branches must contain the exact selected
-    Jira key; mismatches stop the workflow.
-
-    - Codex terminal-title guidance
-    uses the supported `spinner`, `git-branch`, and `project` items without raw terminal
-    escape sequences or Jira-key-only claims.'
+  _releaseNote: "- `com.actionfit.custompackagemanager` \uC758\uC874\uC131\uC744
+    `1.1.91`\uB85C \uAC31\uC2E0\uD574 \uCD5C\uC2E0 schema v2 skill installer\uB97C
+    \uCC38\uC870\uD558\uB3C4\uB85D \uD588\uC2B5\uB2C8\uB2E4.\n- README \uC124\uCE58
+    \uD0DC\uADF8\uC640 `AI_GUIDE.md`\uC758 \uC758\uC874\uC131 \uC124\uBA85\uC744
+    `1.0.17` \uB9B4\uB9AC\uC2A4 \uD6C4\uBCF4\uC5D0 \uB9DE\uCDC4\uC2B5\uB2C8\uB2E4.\n-
+    Jira \uC870\uD68C, \uACC4\uD68D \uC2B9\uC778, \uC0C1\uD0DC \uC804\uD658\uACFC
+    credential \uC548\uC804 \uACBD\uACC4\uB294 \uBCC0\uACBD\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4."
   _dependenciesOverride: 

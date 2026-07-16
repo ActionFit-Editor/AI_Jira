@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.16`
+- Current package version at generation time: `1.0.17`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -70,7 +70,7 @@ Read this file when:
 - Keep Jira REST calls behind the package/client boundary so projects can replace auth or endpoint details without changing workflow rules.
 - Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and use schema v2 `Skills~/manifest.json` with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit `access`. `Skills~/Shared/references/korean-approval-preview.md` owns the dual-representation approval contract for both agents. Custom Package Manager copies registered sources to project-local `.agents/skills` and `.claude/skills`, overlays shared files from `Skills~/Shared`, and generates the managed `PACKAGE_SKILLS.md` only inside installed `jira-help` targets.
 - `jira-help` and `jira-todo` must remain read-only. `jira-plan`, `jira-auto-start`, and `jira-run` are write-capable and must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
-- AI Jira depends on `com.actionfit.custompackagemanager` `1.1.71` so schema v2 installation and generated inventory have one shared owner. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
+- AI Jira depends on `com.actionfit.custompackagemanager` `1.1.91` so schema v2 installation and generated inventory have one shared owner. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
 - Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. New managed hashes belong in `UserSettings/ActionFitPackageManager/skill-install-state.json`; the preserved `UserSettings/AIJira/skill-install-state.json` is migration input only.
 - Package refresh may update only a target whose current directory hash matches the recorded installed hash. Explicit removal may delete only the same unchanged targets and must preserve modified or linked directories.
 
