@@ -21,6 +21,11 @@ class JiraTodoSkillTests(unittest.TestCase):
         )
         self.assertIn("Only issues returned by the `todo` query may appear as actionable", contents)
         self.assertIn("it is not a reason to recommend continuing that issue", contents)
+        self.assertIn("`active`", contents)
+        self.assertIn("`reserved`", contents)
+        self.assertIn("`stranded-review`", contents)
+        self.assertIn("PID liveness", contents)
+        self.assertIn("Never expire, release, steal", contents)
         self.assertNotIn("list --state all", contents)
 
     def test_claude_queries_todo_candidates_and_progress_exclusions_separately(self) -> None:
@@ -35,7 +40,12 @@ class JiraTodoSkillTests(unittest.TestCase):
             contents,
         )
         self.assertIn("Only todo-query issues may be recommended as new work", contents)
-        self.assertIn("not a reason to recommend continuing it", contents)
+        self.assertIn("never reasons to recommend continuing", contents)
+        self.assertIn("`active`", contents)
+        self.assertIn("`reserved`", contents)
+        self.assertIn("`stranded-review`", contents)
+        self.assertIn("PID liveness", contents)
+        self.assertIn("expire, release, steal", contents)
         self.assertNotIn("list --state all", contents)
 
     @staticmethod

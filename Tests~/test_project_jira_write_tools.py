@@ -11,9 +11,17 @@ PROJECT_JIRA_DIR = REPOSITORY_ROOT / "Tools" / "AI" / "jira"
 sys.path.insert(0, str(PROJECT_JIRA_DIR))
 
 from create_issue import validate_new_description
+from finalize_session import (
+    finalize_done,
+    finalize_incomplete,
+    require_finalization_gates,
+    validate_handoff_date,
+)
 from jira_client import JiraClient, automation
 from transition_issue import validate_done_handoff
 from update_description import append_requirements, require_mode_gate
+
+from jira_description import has_handoff_record, has_qa_completion_record
 
 
 ACTIVE_SPRINT_PATH = "/rest/agile/1.0/board/3/sprint?maxResults=50&state=active"
@@ -67,6 +75,42 @@ class RecordingJiraClient(JiraClient):
         if isinstance(response, BaseException):
             raise response
         return response
+
+
+class FinalizationClient:
+    def __init__(self, description: str, *, fail_transition: bool = False) -> None:
+        self.description = description
+        self.status = "개발 진행 중"
+        self.fail_transition = fail_transition
+        self.description_updates = 0
+        self.transition_calls = 0
+
+    def get_issue(self, issue_key: str, fields: list[str] | None = None) -> dict:
+        return {
+            "key": issue_key,
+            "fields": {
+                "status": {"name": self.status},
+                "description": self.description,
+            },
+        }
+
+    def update_description(self, issue_key: str, description: str) -> dict:
+        self.description_updates += 1
+        self.description = description
+        return {}
+
+    def list_transitions(self, issue_key: str) -> list[dict]:
+        return [
+            {"id": "10", "name": "해야 할 일", "to": {"name": "해야 할 일"}},
+            {"id": "30", "name": "개발 완료", "to": {"name": "개발 완료"}},
+        ]
+
+    def transition_issue(self, issue_key: str, transition_id: str) -> dict:
+        self.transition_calls += 1
+        if self.fail_transition:
+            raise SystemExit("transition request failed")
+        self.status = "개발 완료" if transition_id == "30" else "해야 할 일"
+        return {}
 
 
 def successful_create_responses(*, sprint_issues: list[dict] | None = None) -> dict:
@@ -307,6 +351,98 @@ Done
                 "개발 진행 중",
                 "https://github.com/ActionFit/Cat_Merge_Cafe/pull/1234",
             )
+
+    def test_finalization_gates_require_real_transition_and_incomplete_description_write(self) -> None:
+        with self.assertRaisesRegex(SystemExit, "dry_run=false"):
+            require_finalization_gates({"dry_run": True}, "done")
+        with self.assertRaisesRegex(SystemExit, "allow_transition=true"):
+            require_finalization_gates({"dry_run": False}, "done")
+        with self.assertRaisesRegex(SystemExit, "allow_description_append=true"):
+            require_finalization_gates(
+                {"dry_run": False, "allow_transition": True},
+                "incomplete",
+            )
+
+    def test_handoff_date_requires_exact_iso_calendar_date(self) -> None:
+        self.assertEqual("2026-07-15", validate_handoff_date("2026-07-15"))
+        for invalid in ("2026-7-15", "2026-02-30", "15-07-2026"):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(
+                SystemExit, "exact YYYY-MM-DD"
+            ):
+                validate_handoff_date(invalid)
+
+    def test_incomplete_finalization_verifies_handoff_and_returns_to_todo(self) -> None:
+        from test_jira_description import managed_description
+
+        client = FinalizationClient(managed_description())
+        finalize_incomplete(
+            client,
+            "MCC-1490",
+            jira_config()["statuses"],
+            "2026-07-15",
+            completed_work="구조 분석",
+            remaining_work="PR 생성",
+            branch_or_pr="MCC-1490-work / PR 없음",
+            validation="단위 테스트 통과",
+            blocker_or_approval="없음",
+            resume_condition="PR 생성부터 재개",
+        )
+
+        self.assertEqual("해야 할 일", client.status)
+        self.assertEqual(1, client.description_updates)
+        self.assertEqual(1, client.transition_calls)
+        self.assertTrue(has_handoff_record(client.description, "MCC-1490"))
+        self.assertFalse(has_qa_completion_record(client.description, "MCC-1490"))
+
+    def test_incomplete_transition_failure_reports_verified_partial_success(self) -> None:
+        from test_jira_description import managed_description
+
+        client = FinalizationClient(managed_description(), fail_transition=True)
+        with self.assertRaisesRegex(SystemExit, "handoff is verified, but todo finalization failed"):
+            finalize_incomplete(
+                client,
+                "MCC-1490",
+                jira_config()["statuses"],
+                "2026-07-15",
+                completed_work="분석",
+                remaining_work="구현",
+                branch_or_pr="MCC-1490-work",
+                validation="미실행",
+                blocker_or_approval="없음",
+                resume_condition="구현부터 재개",
+            )
+
+        self.assertEqual("개발 진행 중", client.status)
+        self.assertTrue(has_handoff_record(client.description, "MCC-1490"))
+
+    def test_done_finalization_requires_verified_qa_and_reaches_done(self) -> None:
+        client = FinalizationClient(
+            """## QA 확인 필요 사항
+
+### 2026-07-15 / MCC-1490
+- 변경 요약: 완료
+
+---
+
+### 계획
+- 확인 항목:
+
+---
+
+## Goal
+Done
+"""
+        )
+
+        finalize_done(
+            client,
+            "MCC-1490",
+            jira_config()["statuses"],
+            "https://github.com/ActionFitGames/Cat_Merge_Cafe/pull/1234",
+        )
+
+        self.assertEqual("개발 완료", client.status)
+        self.assertEqual(1, client.transition_calls)
 
 
 if __name__ == "__main__":

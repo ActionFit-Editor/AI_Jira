@@ -48,12 +48,15 @@ python3 Tools/AI/jira/transition_issue.py MCC-1234 --to todo
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --to progress
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
 python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
+python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123"
+python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
 - `create_issue.py`: write; validate the managed description contract, require the current active sprint, then report success only after the assigned issue's active-sprint membership and todo status are verified.
 - `update_description.py`: write; append confirmed English requirements, prepend Korean QA notes, or replace only an explicitly approved managed plan under optimistic-concurrency and planning-lock checks.
 - `transition_issue.py --to todo|progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled. Done also requires a PR URL and a verified QA completion record.
 - `transition_issue.py --list`: read-only; list transitions currently available for the issue.
+- `finalize_session.py`: write; make a normal session terminal. `done` reuses the PR and QA completion guards, while `incomplete` verifies one Korean handoff record and returns the issue to configured todo using `allow_description_append` plus `allow_transition`.
 - Recommend each command's `--help` for exact flags in the installed version.
 
 ## Configuration And Safety
@@ -63,6 +66,7 @@ python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
 - State that write commands may be blocked by `dry_run` or individual `allow_*` gates. Access to a command is not authorization to run it.
 - Explain that Jira titles and QA content are Korean while other newly managed description content is English; existing issues are not migrated in bulk.
 - Explain that `jira-plan`, `jira-auto-start`, and `jira-run` show complete planning approval views in Korean while retaining the exact mixed-language storage draft prepared before the preview. Approval writes that canonical draft unchanged, never a back-translation of the Korean view. A revision or lost canonical state requires a regenerated complete Korean view and new approval.
+- Explain that plan discussion and approval waiting stay in todo. Progress is transient active ownership: normal run/auto-start termination must finalize to done or return incomplete work to todo with a Korean handoff. Read-only triage reports progress as active, reserved, or stranded-review and never steals a lease.
 - Explain that `jira-run` and `jira-auto-start` announce `🎫 Jira: <ISSUE-KEY>` before writes and verify the planned and checked-out branch names contain the selected key. When asked about terminal titles, show `[tui]` with `terminal_title = ["spinner", "git-branch", "project"]`, distinguish user-global `~/.codex/config.toml` from trusted project `.codex/config.toml`, and note that Codex derives the project and full branch from the working directory. Do not claim key-only extraction, pre-branch conditional display, or raw OSC output.
 - Read the consuming repository's `AGENTS.md`, `CLAUDE.md`, and linked Jira guidance before advising a state-changing workflow.
 

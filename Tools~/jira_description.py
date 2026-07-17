@@ -38,6 +38,10 @@ FIELD_PATTERN = re.compile(
 )
 ISSUE_KEY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9]+-\d+\b", re.IGNORECASE)
 QA_COMPLETION_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}\s*/\s*([A-Z][A-Z0-9]+-\d+)$", re.IGNORECASE)
+HANDOFF_PATTERN = re.compile(
+    r"^\d{4}-\d{2}-\d{2}\s*/\s*([A-Z][A-Z0-9]+-\d+)\s*/\s*작업 인계$",
+    re.IGNORECASE,
+)
 
 
 def _normalize(text: str) -> str:
@@ -331,6 +335,69 @@ def prepend_qa_record(description: str, issue_key: str, record_date: str, text: 
     if rest:
         updated += "\n\n" + rest
     return updated.rstrip() + "\n"
+
+
+def _handoff_value(value: str) -> str:
+    return " ".join((value or "").split()) or "없음"
+
+
+def prepend_handoff_record(
+    description: str,
+    issue_key: str,
+    record_date: str,
+    *,
+    completed_work: str,
+    remaining_work: str,
+    branch_or_pr: str,
+    validation: str,
+    blocker_or_approval: str,
+    resume_condition: str,
+) -> str:
+    """Insert one current Korean work handoff without creating a QA completion record."""
+    normalized = _normalize(description)
+    current_qa, rest = _split_qa_and_rest(normalized)
+    entries = _qa_entries(current_qa)
+    plan = next((entry for entry in entries if entry[0] == "계획"), ("계획", "- 확인 항목:"))
+    issue_key = issue_key.upper()
+    record_heading = f"{record_date} / {issue_key} / 작업 인계"
+    record_body = "\n".join(
+        (
+            "- 작업 상태: 미완료",
+            f"- 완료한 작업: {_handoff_value(completed_work)}",
+            f"- 남은 작업: {_handoff_value(remaining_work)}",
+            f"- 브랜치/PR: {_handoff_value(branch_or_pr)}",
+            f"- 검증: {_handoff_value(validation)}",
+            f"- 차단/승인: {_handoff_value(blocker_or_approval)}",
+            f"- 재개 조건: {_handoff_value(resume_condition)}",
+        )
+    )
+
+    completions = [(record_heading, record_body)]
+    for entry in entries:
+        if entry[0] == "계획":
+            continue
+        match = HANDOFF_PATTERN.match(entry[0])
+        if match and match.group(1).upper() == issue_key:
+            continue
+        completions.append(entry)
+
+    updated = _render_qa(completions, plan)
+    if rest:
+        updated += "\n\n" + rest
+    return updated.rstrip() + "\n"
+
+
+def has_handoff_record(description: str, issue_key: str) -> bool:
+    try:
+        qa_body, _ = _split_qa_and_rest(description)
+    except ValueError:
+        return False
+    expected = issue_key.upper()
+    for heading, _ in _qa_entries(qa_body):
+        match = HANDOFF_PATTERN.match(heading)
+        if match and match.group(1).upper() == expected:
+            return True
+    return False
 
 
 def has_qa_completion_record(description: str, issue_key: str) -> bool:

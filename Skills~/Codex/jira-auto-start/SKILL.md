@@ -10,10 +10,10 @@ Advance exactly one bounded Jira task. Treat explicit invocation as approval to 
 ## Discover Candidates
 
 1. From the consuming project root, run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py list --state todo --format json`. Only these issues may become new work.
-2. Separately run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py list --state progress --format json`. Use these issues only as overlap, dependency, and exclusion evidence.
+2. Separately run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py list --state progress --format json`. Use these issues only as overlap, dependency, exclusion, and stranded-progress recovery evidence.
 3. Read every todo candidate with `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py detail <ISSUE-KEY> --format json` in query order. Use its `issueLinks` and `configuredStatuses` as prerequisite evidence.
 4. Read `AGENTS.md`, `CLAUDE.md`, and linked repository guidance before judging scope.
-5. Inspect branches, worktrees, and pull requests with read-only commands to detect existing or overlapping work.
+5. Inspect branches, worktrees, leases, Unity processes, and pull requests with read-only commands to detect existing, overlapping, or stranded work. Classify each progress issue with deterministic precedence: `active` when an open PR, dirty worktree, Unity process, or equivalent current-work evidence exists; otherwise `reserved` when a matching lease exists, regardless of acquisition PID liveness; otherwise `stranded-review` when only merged/closed PRs or no active work evidence remains. Never expire, release, or steal a lease during discovery.
 
 ## Resolve Prerequisites
 
@@ -55,13 +55,13 @@ Announce the selected issue first with the exact standalone user-visible comment
 ## Refine A Needs-Plan Issue
 
 1. Re-read the selected issue and require its status to equal `configuredStatuses.todo`.
-2. Move it to `progress` through the project transition tool, re-read it, verify the planning lock, and capture its `updated` value. Do not create a branch or worktree yet.
-3. Prepare the canonical `jira-plan` storage draft: Korean Jira title and QA section, English `Auto Start`, `Goal`, `Scope`, `Out of Scope`, `Completion Criteria`, `Validation Plan`, and `Dependencies and Risks` content.
-4. Read `references/korean-approval-preview.md`, retain that exact canonical draft, show its complete Korean approval view, and ask for explicit approval of either **plan only** or **plan update and auto-start**. Explain that approval writes the corresponding canonical mixed-language draft.
-5. After approval, call the project `update_description.py --mode replace-plan` with a temporary file and the captured `--expected-updated` value, remove the file, then re-read and verify the managed contract.
-6. For plan only, transition back to `todo`, verify, and stop. For plan update and auto-start, keep `progress` and continue with implementation.
+2. Capture the todo issue's `updated` value. While it remains in todo, prepare the canonical `jira-plan` storage draft: Korean Jira title and QA section, English `Auto Start`, `Goal`, `Scope`, `Out of Scope`, `Completion Criteria`, `Validation Plan`, and `Dependencies and Risks` content.
+3. Read `references/korean-approval-preview.md`, retain that exact canonical draft, show its complete Korean approval view, and ask for explicit approval of either **plan only** or **plan update and auto-start**. Explain that approval writes the corresponding canonical mixed-language draft.
+4. After approval, re-read and require the same todo status and captured `updated` value. If either differs, regenerate and reapprove without transitioning. After a match, move it to `progress`, verify the transient planning lock, and capture its post-transition `updated` value. Do not create a branch or worktree for plan-only work.
+5. Call the project `update_description.py --mode replace-plan` with a temporary file and the captured `--expected-updated` value, remove the file, then re-read and verify the managed contract.
+6. For plan only, transition back to `todo`, verify, and stop. For plan update and auto-start, continue immediately with implementation and do not end the invocation in `progress`.
 
-If the update fails, attempt to return to `todo` and verify. If rollback also fails, leave the issue in `progress` and report both failures. Never expire or steal a planning lock automatically. An interrupted planning session remains in `progress` until the user explicitly resumes or releases it, and every other session must continue excluding progress issues. If the exact canonical draft behind the approved Korean view is unavailable or uncertain, regenerate both representations and request approval again before any Jira write.
+If the update fails after lock acquisition, attempt to return to `todo` and verify. If rollback also fails, report both failures as an exceptional stranded-progress case. Never expire or steal a planning lock automatically. Approval waiting, revision discussion, and uncertain canonical state remain in todo; regenerate both representations and request approval again before any Jira write.
 
 ## Execute The Selected Issue
 
@@ -70,11 +70,12 @@ If the update fails, attempt to return to `todo` and verify. If rollback also fa
 3. Prepare the required isolated worktree. Before repository edits, read the actual checked-out branch and verify that it still contains the exact selected issue key; stop if it differs from the canonical plan.
 4. Use only consuming-project Jira write tools and enabled gates. Missing tools, dry-run mode, or disabled gates are blockers; never call Jira directly to bypass them.
 5. Implement only the selected issue, preserve unrelated changes, update required documentation, and run proportionate validation.
-6. Review the complete diff, commit without an AI co-author trailer, push, and create the pull request using repository rules.
-7. After the PR exists, prepend Korean QA notes when enabled, verify the QA completion record, then transition Jira to the configured internal done status with the PR URL. Never move the issue to QA.
-8. Report the selected issue key, branch, worktree, PR, Jira state, validation, and remaining blockers in the repository's required format.
+6. Review the complete diff, commit without an AI co-author trailer, push, and create the pull request using repository rules. Reuse an incomplete open PR only for the same issue after Jira has returned to todo and no active lease owns it. Never reuse a merged or closed PR branch; create a new follow-up branch and PR.
+7. After the PR exists, prepend Korean QA notes when enabled, verify the QA completion record, then run `Tools/AI/jira/finalize_session.py <ISSUE-KEY> --outcome done --pr-url <PR-URL>` and verify configured done. Never move the issue to QA.
+8. If work is incomplete, unclear, approval-blocked, or stopped after a partial PR, run `finalize_session.py --outcome incomplete` with every Korean handoff field, verify the handoff and configured todo status, then follow repository lease-release rules. A PR alone never proves completion.
+9. Report the selected issue key, branch, worktree, PR, Jira state, validation, and remaining blockers in the repository's required format.
 
-If work becomes unclear or blocked after the progress transition, stop before speculative changes, leave the issue in progress, and report the exact blocker.
+Do not produce a normal final response while the selected issue remains in progress. Only an explicit Jira API/finalization failure or abrupt process failure may leave it there; report the exact partial state and recovery command instead of claiming a normal completion.
 
 ## Boundaries
 

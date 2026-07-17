@@ -100,6 +100,21 @@ class JiraActionSkillTests(unittest.TestCase):
             self.assertIn("Leave the issue in todo", contents)
             self.assertIn("do not implement", contents.lower())
 
+    def test_planning_waits_in_todo_and_uses_only_a_transient_approved_lock(self) -> None:
+        for agent in ("Codex", "Claude"):
+            for name in ("jira-plan", "jira-auto-start", "jira-run"):
+                contents = self._read_skill(agent, name)
+                lower = contents.lower()
+
+                self.assertIn("transient planning lock", lower)
+                self.assertIn("approval waiting", lower)
+                self.assertIn("todo", lower)
+                self.assertIn("capture", lower)
+                self.assertIn("updated", lower)
+                self.assertIn("same todo status", lower)
+                self.assertIn("regenerat", lower)
+                self.assertNotIn("interrupted planning stays progress", lower)
+
     def test_run_skills_require_verified_qa_and_pr_for_done(self) -> None:
         for agent in ("Codex", "Claude"):
             contents = self._read_skill(agent, "jira-run")
@@ -109,6 +124,33 @@ class JiraActionSkillTests(unittest.TestCase):
             self.assertIn("planning lock", contents.lower())
             self.assertIn("QA", contents)
             self.assertIn("PR URL", contents)
+
+    def test_run_and_auto_start_enforce_terminal_finalization_and_pr_continuation(self) -> None:
+        for agent in ("Codex", "Claude"):
+            for name in ("jira-run", "jira-auto-start"):
+                contents = self._read_skill(agent, name)
+                lower = contents.lower()
+
+                self.assertIn("finalize_session.py", contents)
+                self.assertIn("--outcome done", contents)
+                self.assertIn("--outcome incomplete", contents)
+                self.assertIn("normal final response", lower)
+                self.assertIn("pr alone never proves completion", lower)
+                self.assertIn("open pr", lower)
+                self.assertIn("merged or closed pr branch", lower)
+                self.assertIn("active lease", lower)
+
+    def test_auto_start_reports_progress_recovery_evidence_without_lease_stealing(self) -> None:
+        for agent in ("Codex", "Claude"):
+            contents = self._read_skill(agent, "jira-auto-start")
+
+            for classification in ("active", "reserved", "stranded-review"):
+                self.assertIn(classification, contents)
+            self.assertIn("deterministic precedence", contents)
+            self.assertIn("otherwise", contents)
+            self.assertIn("PID liveness", contents)
+            self.assertIn("expire", contents)
+            self.assertIn("steal", contents)
 
     def test_run_and_auto_start_announce_and_verify_visible_jira_identity(self) -> None:
         for agent in ("Codex", "Claude"):

@@ -9,8 +9,10 @@ TOOLS_DIR = Path(__file__).resolve().parents[1] / "Tools~"
 sys.path.insert(0, str(TOOLS_DIR))
 
 from jira_description import (
+    has_handoff_record,
     has_qa_completion_record,
     parse_description_contract,
+    prepend_handoff_record,
     prepend_qa_record,
     replace_managed_plan,
 )
@@ -224,6 +226,59 @@ Example only:
         self.assertIn("갱신 기록", second)
         self.assertIn("### 계획", second)
         self.assertTrue(has_qa_completion_record(second, "MCC-1490"))
+
+    def test_handoff_replaces_prior_issue_handoff_and_preserves_qa_history(self) -> None:
+        description = prepend_qa_record(
+            managed_description(qa_plan="- 확인 항목: 회귀 테스트"),
+            "MCC-1400",
+            "2026-07-14",
+            "- 변경 요약: 이전 완료 기록",
+        )
+        first = prepend_handoff_record(
+            description,
+            "MCC-1490",
+            "2026-07-15",
+            completed_work="패키지 분석",
+            remaining_work="구현",
+            branch_or_pr="MCC-1490-work",
+            validation="미실행",
+            blocker_or_approval="사용자 결정 대기",
+            resume_condition="결정 후 재개",
+        )
+        second = prepend_handoff_record(
+            first,
+            "MCC-1490",
+            "2026-07-16",
+            completed_work="패키지 분석 및 구현",
+            remaining_work="PR 생성",
+            branch_or_pr="MCC-1490-work / PR 없음",
+            validation="단위 테스트 통과",
+            blocker_or_approval="없음",
+            resume_condition="PR 생성부터 재개",
+        )
+
+        self.assertNotIn("2026-07-15 / MCC-1490 / 작업 인계", second)
+        self.assertEqual(1, second.count("/ MCC-1490 / 작업 인계"))
+        self.assertIn("### 2026-07-14 / MCC-1400", second)
+        self.assertIn("- 완료한 작업: 패키지 분석 및 구현", second)
+        self.assertIn("### 계획", second)
+        self.assertTrue(has_handoff_record(second, "MCC-1490"))
+
+    def test_handoff_is_not_a_qa_completion_record(self) -> None:
+        updated = prepend_handoff_record(
+            managed_description(),
+            "MCC-1490",
+            "2026-07-15",
+            completed_work="분석",
+            remaining_work="구현",
+            branch_or_pr="없음",
+            validation="미실행",
+            blocker_or_approval="승인 대기",
+            resume_condition="승인 후 재개",
+        )
+
+        self.assertTrue(has_handoff_record(updated, "MCC-1490"))
+        self.assertFalse(has_qa_completion_record(updated, "MCC-1490"))
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
 ---
 name: jira-plan
-description: Research and discuss a development plan, show the complete approval draft in Korean while retaining the exact mixed-language Jira storage draft, then create a new todo issue or safely refine an existing planning-locked issue after explicit approval without implementing it. Use for new Jira-ready plans and for todo issues classified as needs-plan.
+description: Research and discuss a development plan, show the complete approval draft in Korean while retaining the exact mixed-language Jira storage draft, then create a new todo issue or safely refine an existing todo issue under a transient approved write lock without implementing it. Use for new Jira-ready plans and for todo issues classified as needs-plan.
 ---
 
 # Jira Plan
 
-Turn a new idea into one approved Jira todo issue, or refine one explicitly selected issue under a planning lock. Do not implement the planned work in this skill.
+Turn a new idea into one approved Jira todo issue, or refine one explicitly selected todo issue under a transient approved write lock. Do not implement the planned work in this skill or end a normal invocation with the issue in progress.
 
 ## Research And Discuss
 
@@ -15,7 +15,7 @@ Turn a new idea into one approved Jira todo issue, or refine one explicitly sele
 4. Ask only questions whose answers materially change scope, behavior, safety, or acceptance criteria. Offer a recommendation and tradeoff when several reasonable approaches exist.
 5. Resolve the goal, current problem, included and excluded scope, ordered implementation approach, completion conditions, validation, dependencies, risks, and rollout or migration implications.
 
-Do not edit repository files, create a worktree, or start implementation while planning. New-issue planning remains read-only. Existing-issue refinement may use only the planning-lock transition and approved managed-description update described below.
+Do not edit repository files, create a worktree, or start implementation while planning. New-issue planning remains read-only. Existing-issue discussion and approval waiting also remain in todo; only the approved managed-description write may use the transient planning lock described below.
 
 ## Prepare The Jira Draft
 
@@ -60,12 +60,12 @@ Before asking for approval, read `references/korean-approval-preview.md` and fol
 Use this path only for an explicitly selected assigned unresolved todo issue whose description needs planning.
 
 1. Re-read the issue and require its status to equal `configuredStatuses.todo`.
-2. Move it to `progress` with the consuming project's transition tool, re-read it, verify the status, and record the returned `updated` value. This status is a planning lock; other sessions must exclude it.
-3. Discuss the missing scope or decisions and prepare the complete canonical mixed-language description above. Follow `references/korean-approval-preview.md`, show its complete Korean approval view, and ask whether the user approves **plan only** or **plan update and implementation**.
-4. After explicit approval, write the draft to a temporary UTF-8 file outside the repository and call `Tools/AI/jira/update_description.py <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value>`. Remove the temporary file.
-5. Re-read the issue and verify the approved managed contract. For plan only, move it back to `todo` and verify. For plan update and implementation, leave it in `progress` and return control to the explicitly invoked run or auto-start workflow; this skill still does not implement.
+2. Capture the todo issue's `updated` value, then discuss the missing scope or decisions while it stays in todo. Prepare the complete canonical mixed-language description above, follow `references/korean-approval-preview.md`, show its complete Korean approval view, and ask for explicit plan-update approval.
+3. After explicit approval, re-read the issue and require the same todo status and `updated` value from the captured approved todo snapshot. If they differ, regenerate and reapprove without transitioning. Only after a match may you move it to `progress`, re-read it, verify the transient planning lock, and capture the post-transition `updated` value.
+4. Write the retained draft to a temporary UTF-8 file outside the repository and call `Tools/AI/jira/update_description.py <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value>`. Remove the temporary file.
+5. Re-read the issue, verify the approved managed contract, transition it back to `todo`, and verify the final status before responding.
 
-The project tool must preserve existing Korean QA completion records and unmanaged sections. If the managed update fails, attempt to return the issue to `todo`, re-read it, and report both failures if rollback also fails. Never expire or steal a planning lock automatically. If collaboration is interrupted, leave the issue in `progress` until the user explicitly resumes or releases it.
+The project tool must preserve existing Korean QA completion records and unmanaged sections. If the managed update fails after the transient lock, attempt to return the issue to `todo`, re-read it, and report both failures if rollback also fails. Never expire or steal a planning lock automatically. Waiting for approval, requested revisions, and lost canonical state must remain in todo. Only an abrupt process failure or Jira failure may exceptionally strand the issue in progress, and that failure must be reported for recovery.
 
 ## Create After Approval
 
@@ -73,7 +73,7 @@ The project tool must preserve existing Korean QA completion records and unmanag
 2. Use the consuming project's `Tools/AI/jira/create_issue.py` with `--summary` and a temporary UTF-8 `--description-file` outside the repository, then remove that temporary file. Do not call Jira REST directly.
 3. Let the project tool enforce assignment to the authenticated user, configured todo status, active-sprint behavior, dry-run mode, and write gates.
 4. Report the created issue key and URL, or the exact blocker when configuration, credentials, sprint resolution, or write gates prevent creation.
-5. Leave the issue in todo. Do not create a branch, transition to progress, implement, commit, push, or open a pull request.
+5. Leave the issue in todo. Do not create a branch, leave it in progress, implement, commit, push, or open a pull request.
 
 Do not implement the planned issue in this invocation.
 

@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.18"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.19"
   }
 }
 ```
@@ -31,9 +31,11 @@ AI Jira registers schema v2 package-owned sources with `skillPrefix: jira`, mand
 
 The installer generates `PACKAGE_SKILLS.md` inside each installed `jira-help` from AI Jira package metadata, the manifest, and agent-specific `SKILL.md` descriptions. `jira-help` reads that inventory first, so package identity, every related skill, its `$name` invocation, when-to-use description, and access boundary stay synchronized without a second hard-coded skill list.
 
-`jira-help` explains the generated inventory, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates; `progress` issues and their existing branches, worktrees, or pull requests are overlap and exclusion evidence. A progress issue is never promoted into the recommendation order unless the user explicitly asks about that specific issue, and the skill remains read-only even then.
+`jira-help` explains the generated inventory, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates. Progress issues are reported as `active`, `reserved`, or `stranded-review` from branch, pull-request, worktree, lease, and Unity-process evidence, but remain excluded from recommendation order. A lease is never considered stale from acquisition PID liveness and is never released or stolen by triage.
 
-`jira-plan` researches and discusses a development idea, prepares the canonical mixed-language Jira storage draft, and derives a complete Korean approval view before creating one assigned `todo` issue. It can also refine one explicitly selected needs-plan issue under a verified progress planning lock without implementing it. `jira-auto-start` leaves the read-only `jira-todo` overview unchanged, classifies every assigned unresolved `todo` as startable, needs-plan, blocked, or approval-required, executes the first startable item, and only when none is startable offers collaborative refinement for the first needs-plan item. A prerequisite counts as complete only when its Jira resolution is set or its status matches configured `done`. Sensitive, destructive, publishing, deployment, production, and credential work remains separately approved. `jira-run` handles an issue explicitly selected by the user and uses the same planning-lock and Korean approval-preview protocol when its contract is incomplete.
+`jira-plan` researches and discusses a development idea, prepares the canonical mixed-language Jira storage draft, and derives a complete Korean approval view before creating one assigned `todo` issue. Existing needs-plan discussion and approval waiting also stay in todo; only the approved managed-plan write uses a short verified progress lock, and plan-only work returns to todo before the response. `jira-auto-start` classifies every assigned unresolved todo, executes the first startable item, and only when none is startable offers refinement for the first needs-plan item. A prerequisite counts as complete only when its Jira resolution is set or its status matches configured `done`. Sensitive, destructive, publishing, deployment, production, and credential work remains separately approved. `jira-run` handles an explicitly selected issue with the same approval protocol.
+
+Normal `jira-run` and `jira-auto-start` sessions cannot end while their selected issue remains in progress. Completed work requires a PR URL and verified Korean QA completion record before configured done. Incomplete, unclear, or approval-blocked work writes one Korean handoff record and returns to configured todo. Only an abrupt process failure, Jira outage, or finalization failure may exceptionally strand progress, and read-only triage surfaces that recovery evidence without mutating leases.
 
 All planning approval entry points show the complete user-visible plan in Korean and preserve technical identifiers. Jira still stores the Korean title and QA section plus English managed sections. Approval writes the exact canonical storage draft prepared before the preview; it never back-translates the Korean view. Requested revisions update the canonical draft first and require a regenerated complete Korean view and new approval. If interruption or context loss makes the canonical draft unavailable or uncertain, the workflow regenerates both representations and asks again instead of writing Jira. The English storage body is shown only when the user explicitly asks for it.
 
@@ -135,7 +137,7 @@ Keep exactly one Korean `### 계획`, all three Auto Start fields, and every Eng
 
 The managed description above is the canonical Jira storage representation. Before asking the user to approve creation or needs-plan refinement, `jira-plan`, `jira-auto-start`, and `jira-run` derive a full Korean conversational view from it using `Skills~/Shared/references/korean-approval-preview.md`. That view translates the managed headings, field labels, control values, and explanatory content while preserving operational identifiers. The pre-preview canonical draft remains the only allowed write payload.
 
-Existing Jira descriptions are never bulk-migrated. A needs-plan issue moves from todo to progress as a planning lock before collaboration. After the user approves the complete Korean view and its corresponding canonical draft, the consuming project may update only the managed plan with the independent `allow_description_plan_refinement` gate, the captured Jira `updated` value, and the verified progress status:
+Existing Jira descriptions are never bulk-migrated. A needs-plan issue stays in todo during collaboration and approval. After the user approves the complete Korean view and its corresponding canonical draft, the workflow rechecks the unchanged todo snapshot, acquires a transient progress lock, and may update only the managed plan with the independent `allow_description_plan_refinement` gate, the captured post-transition Jira `updated` value, and the verified progress status:
 
 ```bash
 python3 Tools/AI/jira/update_description.py MCC-1234 \
@@ -144,7 +146,7 @@ python3 Tools/AI/jira/update_description.py MCC-1234 \
   --expected-updated "2026-07-15T02:22:47.217+0000"
 ```
 
-The operation preserves existing QA completion records and unmanaged top-level sections. Plan-only work returns to todo. Plan-and-implementation remains progress. Update failure attempts todo rollback; locks never expire or get stolen automatically.
+The operation preserves existing QA completion records and unmanaged top-level sections. Plan-only work returns to todo. Plan-and-implementation continues immediately and must later finalize to done or todo. Update failure attempts todo rollback; locks never expire or get stolen automatically. Progress triage applies deterministic precedence: active work evidence first, otherwise a matching lease is reserved, otherwise the issue is stranded-review when only merged/closed PRs or no active work evidence remains.
 
 The project `create_issue.py` validates this managed contract before sending a Jira write, so incomplete or unresolved new drafts fail locally instead of creating malformed todo work.
 
@@ -196,18 +198,24 @@ Compatible Jira clients treat a missing `add_to_active_sprint_after_create` valu
 
 After creation, the client must re-read the issue and verify the authenticated assignee, configured `todo` status, and expected sprint membership before reporting success. Use enhanced JQL search with `reconcileIssues` when the create response provides the numeric issue id so the membership check has stronger read-after-write consistency. If Jira created the issue but sprint assignment or later verification fails, report the created issue key, expected sprint, exact mismatch, and manual recovery action without deleting the issue.
 
-## PR Completion Defaults
+## Session Finalization
 
-For Jira-backed development work, creating a PR is not enough to finish the Jira lifecycle. After the PR URL exists, the AI workflow should prepend Korean QA notes when enabled and move the issue to the configured `done` status. In this project that status is `개발 완료`.
+For Jira-backed development work, creating a PR is not enough to finish the Jira lifecycle. After the PR URL exists, prepend Korean QA notes when enabled and finalize to configured done. Incomplete work finalizes to todo with a current Korean handoff record.
 
 Use:
 
 ```bash
 python3 Tools/AI/jira/update_description.py MCC-1234 --mode prepend-qa --file qa-notes.md
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
+python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123"
+python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome incomplete \
+  --completed-work "분석 완료" --remaining-work "구현 및 검증" \
+  --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" \
+  --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
-The done transition verifies that the issue is in progress, the Korean QA completion record exists at the top, and a PR URL was supplied. If Jira writes are disabled, credentials are missing, QA verification fails, or the configured transition does not exist, the AI must report the blocker instead of silently leaving the issue in progress.
+Done verifies progress, the issue-specific Korean QA completion record, PR URL, transition, and resulting status. Incomplete requires `allow_description_append` and `allow_transition`, upserts a heading that cannot satisfy the QA completion pattern, verifies the description, and verifies todo. Description update and transition are separate Jira operations, so a verified handoff can remain after a transition failure; report that partial result and recovery action explicitly.
+
+An incomplete open PR may be resumed for the same issue only after Jira returns to todo and no active lease owns it. A merged or closed PR branch is never reused; follow-up work starts from the latest integration branch with a new PR.
 
 ## Legacy Package
 
