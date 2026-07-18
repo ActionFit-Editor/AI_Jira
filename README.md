@@ -11,7 +11,7 @@ The package owns Codex and Claude Jira skill content plus the read-only Jira wor
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.19"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.20"
   }
 }
 ```

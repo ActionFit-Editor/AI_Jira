@@ -18,7 +18,7 @@ from finalize_session import (
     validate_handoff_date,
 )
 from jira_client import JiraClient, automation
-from transition_issue import validate_done_handoff
+from transition_issue import find_transition, validate_done_handoff
 from update_description import append_requirements, require_mode_gate
 
 from jira_description import has_handoff_record, has_qa_completion_record
@@ -134,6 +134,17 @@ def successful_create_responses(*, sprint_issues: list[dict] | None = None) -> d
 
 
 class ProjectJiraWriteToolTests(unittest.TestCase):
+    def test_transition_selection_prefers_destination_over_action_name(self) -> None:
+        transitions = [
+            {"id": "11", "name": "해야 할 일", "to": {"name": "개발 진행 중"}},
+            {"id": "21", "name": "진행 중", "to": {"name": "해야 할 일"}},
+        ]
+
+        selected = find_transition(transitions, "해야 할 일")
+
+        self.assertIsNotNone(selected)
+        self.assertEqual("21", selected["id"])
+
     def test_new_issue_requires_complete_managed_description(self) -> None:
         with self.assertRaises(SystemExit):
             validate_new_description("## Goal\nIncomplete")
