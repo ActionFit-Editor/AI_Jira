@@ -1,74 +1,74 @@
 # AI Jira (com.actionfit.ai-jira)
 
-ActionFit AI agents use this package for project-local Jira planning, read-only work-item discovery, automatic bounded task pickup, Jira lifecycle guidance, and safe local automation.
+ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목 검색, 범위가 제한된 자동 작업 선택, Jira lifecycle 가이드와 안전한 local 자동화에 사용하는 패키지입니다.
 
-## Current Scope
+## 현재 범위
 
-The package owns Codex and Claude Jira skill content plus the read-only Jira work-item API and CLI. `com.actionfit.custompackagemanager` owns the shared package-skill discovery and installation lifecycle, while Cat Merge Cafe keeps project-local compatibility entry points under `Tools/AI/jira/` and write-oriented automation behind the existing project client.
+이 패키지는 Codex 및 Claude Jira skill 콘텐츠와 읽기 전용 Jira 작업 항목 API/CLI를 소유합니다. 공유 package skill 검색 및 설치 lifecycle은 `com.actionfit.custompackagemanager`가 소유하고, Cat Merge Cafe는 `Tools/AI/jira/` 아래의 프로젝트 로컬 호환 entry point와 기존 프로젝트 client 뒤의 쓰기 자동화를 유지합니다.
 
-## Install
+## 설치
 
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.20"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.23"
   }
 }
 ```
 
-## Unity Menu
+## Unity 메뉴
 
-- Package root: `Tools > Package > AI Jira`.
-- README: `Tools > Package > AI Jira > README`.
-- Shared skill management: `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills`, `Remove Managed Agent Skills`, and `Add Agent Skill`.
+- 패키지 root: `Tools > Package > AI Jira`
+- README: `Tools > Package > AI Jira > README`
+- 공유 skill 관리: `Tools > Package > Custom Package Manager > Install or Refresh Agent Skills`, `Remove Managed Agent Skills`, `Add Agent Skill`
 
-## Codex And Claude Skills
+## Codex 및 Claude Skill
 
-AI Jira registers schema v2 package-owned sources with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit read-only/write-capable access through `Skills~/manifest.json`. After Unity resolves AI Jira and its Custom Package Manager dependency, the common installer synchronizes them into the consuming project:
+AI Jira는 `Skills~/manifest.json`을 통해 `skillPrefix: jira`, 필수 `helpSkill: jira-help`와 명시적인 read-only/write-capable access를 가진 schema v2 package-owned source를 등록합니다. Unity가 AI Jira와 Custom Package Manager 의존성을 해석하면 공통 installer가 사용하는 프로젝트에 동기화합니다.
 
-- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, `.agents/skills/jira-plan`, `.agents/skills/jira-auto-start`, and `.agents/skills/jira-run`.
-- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, `.claude/skills/jira-plan`, `.claude/skills/jira-auto-start`, and `.claude/skills/jira-run`.
+- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, `.agents/skills/jira-plan`, `.agents/skills/jira-auto-start`, `.agents/skills/jira-run`
+- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, `.claude/skills/jira-plan`, `.claude/skills/jira-auto-start`, `.claude/skills/jira-run`
 
-The installer generates `PACKAGE_SKILLS.md` inside each installed `jira-help` from AI Jira package metadata, the manifest, and agent-specific `SKILL.md` descriptions. `jira-help` reads that inventory first, so package identity, every related skill, its `$name` invocation, when-to-use description, and access boundary stay synchronized without a second hard-coded skill list.
+Installer는 AI Jira package metadata, manifest와 agent별 `SKILL.md` description으로 설치된 각 `jira-help` 안에 `PACKAGE_SKILLS.md`를 생성합니다. `jira-help`는 이 inventory를 먼저 읽으므로 두 번째 hard-coded skill 목록 없이 package identity, 모든 관련 skill, `$name` 호출, 사용 시점 description과 access 경계가 동기화됩니다.
 
-`jira-help` explains the generated inventory, read-only and write-capable command families, configuration, safety gates, and Unity menus without executing Jira operations. `jira-todo` queries assigned unresolved `todo` and `progress` issues separately. Only `todo` issues are new-work candidates. Progress issues are reported as `active`, `reserved`, or `stranded-review` from branch, pull-request, worktree, lease, and Unity-process evidence, but remain excluded from recommendation order. A lease is never considered stale from acquisition PID liveness and is never released or stolen by triage.
+`jira-help`는 Jira 작업을 실행하지 않고 생성 inventory, read-only/write-capable 명령군, 설정, safety gate와 Unity 메뉴를 설명합니다. `jira-todo`는 할당된 미해결 `todo`와 `progress` issue를 별도로 조회합니다. 새 작업 후보는 `todo` issue뿐입니다. Progress issue는 branch, pull request, worktree, lease 및 Unity process 증거에 따라 `active`, `reserved`, `stranded-review`로 보고하지만 추천 순서에서는 제외합니다. Acquisition PID 생존 여부만으로 lease를 오래됐다고 판단하지 않으며 triage가 lease를 해제하거나 가져가지 않습니다.
 
-`jira-plan` researches and discusses a development idea, prepares the canonical mixed-language Jira storage draft, and derives a complete Korean approval view before creating one assigned `todo` issue. Existing needs-plan discussion and approval waiting also stay in todo; only the approved managed-plan write uses a short verified progress lock, and plan-only work returns to todo before the response. `jira-auto-start` classifies every assigned unresolved todo, executes the first startable item, and only when none is startable offers refinement for the first needs-plan item. A prerequisite counts as complete only when its Jira resolution is set or its status matches configured `done`. Sensitive, destructive, publishing, deployment, production, and credential work remains separately approved. `jira-run` handles an explicitly selected issue with the same approval protocol.
+`jira-plan`은 개발 아이디어를 조사하고 논의하며 canonical 혼합 언어 Jira 저장 draft를 준비한 뒤 할당된 `todo` issue 하나를 생성하기 전에 완전한 한국어 승인 view를 만듭니다. 기존 needs-plan 논의와 승인 대기도 todo에 유지합니다. 승인된 managed-plan 쓰기에서만 짧고 검증된 progress lock을 사용하고 plan-only 작업은 응답 전에 todo로 돌아갑니다. `jira-auto-start`는 할당된 모든 미해결 todo를 분류하고 시작 가능한 첫 항목을 실행하며, 시작 가능한 항목이 없을 때만 첫 needs-plan 항목의 refinement를 제안합니다. Jira resolution이 설정되거나 status가 설정된 `done`과 일치할 때만 prerequisite 완료로 판단합니다. 민감·파괴적·publish·deployment·production·credential 작업은 별도 승인을 유지합니다. `jira-run`도 명시적으로 선택한 issue를 같은 승인 protocol로 처리합니다.
 
-Normal `jira-run` and `jira-auto-start` sessions cannot end while their selected issue remains in progress. Completed work requires a PR URL and verified Korean QA completion record before configured done. Incomplete, unclear, or approval-blocked work writes one Korean handoff record and returns to configured todo. Only an abrupt process failure, Jira outage, or finalization failure may exceptionally strand progress, and read-only triage surfaces that recovery evidence without mutating leases.
+일반 `jira-run`과 `jira-auto-start` session은 선택 issue가 progress인 채로 끝날 수 없습니다. 완료 작업은 설정된 done 전환 전에 PR URL과 검증된 한국어 QA 완료 기록이 필요합니다. 미완료, 불명확 또는 승인 차단 작업은 한국어 handoff 기록 하나를 쓰고 설정된 todo로 돌아갑니다. 갑작스러운 process 실패, Jira 장애 또는 finalization 실패에서만 예외적으로 progress가 남을 수 있으며 읽기 전용 triage가 lease를 변경하지 않고 복구 증거를 표시합니다.
 
-All planning approval entry points show the complete user-visible plan in Korean and preserve technical identifiers. Jira still stores the Korean title and QA section plus English managed sections. Approval writes the exact canonical storage draft prepared before the preview; it never back-translates the Korean view. Requested revisions update the canonical draft first and require a regenerated complete Korean view and new approval. If interruption or context loss makes the canonical draft unavailable or uncertain, the workflow regenerates both representations and asks again instead of writing Jira. The English storage body is shown only when the user explicitly asks for it.
+모든 plan 승인 entry point는 사용자에게 보이는 전체 plan을 한국어로 표시하고 기술 식별자를 보존합니다. Jira에는 한국어 title/QA section과 영어 managed section을 저장합니다. 승인은 preview 전에 준비한 정확한 canonical storage draft를 쓰며 한국어 view를 다시 영어로 번역하지 않습니다. 수정 요청은 canonical draft를 먼저 업데이트하고 완전한 한국어 view를 다시 생성해 새 승인을 요구합니다. 중단 또는 context 손실로 canonical draft가 없거나 불확실하면 Jira에 쓰지 않고 두 표현을 다시 생성해 재확인합니다. 영어 저장 본문은 사용자가 명시적으로 요청할 때만 표시합니다.
 
-All three write-capable skills are manual-only: Codex disables implicit invocation and Claude ships them with `disable-model-invocation: true`.
+세 write-capable skill은 모두 manual-only입니다. Codex는 암시적 호출을 비활성화하고 Claude는 `disable-model-invocation: true`로 제공합니다.
 
-## Visible Jira Identity
+## 표시되는 Jira 사용자 정보
 
-`jira-run` and `jira-auto-start` print the selected issue as the exact standalone line `🎫 Jira: <ISSUE-KEY>` before any Jira write, worktree preparation, or repository mutation. Before implementation they also require the planned canonical branch to contain that exact key, and they verify the actual checked-out branch again before editing files. A mismatch stops the workflow instead of allowing work on another issue's branch.
+`jira-run`과 `jira-auto-start`는 Jira 쓰기, worktree 준비 또는 저장소 변경 전에 선택 issue를 정확한 독립 행 `🎫 Jira: <ISSUE-KEY>`로 출력합니다. 구현 전에는 계획한 canonical branch가 정확히 해당 key를 포함해야 하며 파일 편집 전에 실제 checkout branch도 다시 확인합니다. 일치하지 않으면 다른 issue branch 작업을 허용하지 않고 workflow를 중단합니다.
 
-Codex can also expose the Jira key in the terminal window or tab title through its supported Git branch title item:
+Codex는 지원되는 Git branch title 항목을 통해 terminal 창 또는 tab title에도 Jira key를 표시할 수 있습니다.
 
 ```toml
 [tui]
 terminal_title = ["spinner", "git-branch", "project"]
 ```
 
-Keep this setting in user-global `~/.codex/config.toml` when it should apply across projects, or in trusted project `.codex/config.toml` when the repository can safely own that path. The setting contains no project path: Codex resolves `project` and `git-branch` from the current working directory. The title shows the full branch, so the existing `<ISSUE-KEY>-<short-english-slug>` branch contract supplies the visible Jira key. It does not support Jira-key-only extraction or conditional pre-branch display, and AI Jira does not emit raw OSC title sequences or edit global Codex configuration during normal task execution.
+프로젝트 전체에 적용하려면 user-global `~/.codex/config.toml`, 저장소가 해당 경로를 안전하게 소유할 수 있는 신뢰 프로젝트에서는 `.codex/config.toml`에 설정합니다. 설정에는 프로젝트 경로가 없으며 Codex가 현재 작업 디렉터리에서 `project`와 `git-branch`를 해석합니다. Title은 전체 branch를 표시하므로 기존 `<ISSUE-KEY>-<short-english-slug>` branch 계약이 Jira key를 노출합니다. Jira key만 추출하거나 branch 생성 전 조건부 표시하는 기능은 지원하지 않으며 AI Jira는 일반 작업 중 raw OSC title sequence를 출력하거나 global Codex 설정을 변경하지 않습니다.
 
-Planning-only and read-only flows keep the relevant Jira key visible in their response but do not create branches or worktrees solely for title display. Claude follows the same announcement and branch-key verification rules without claiming Codex terminal-title behavior. A new Codex session may be required after changing the TUI configuration.
+Plan-only 및 read-only 흐름은 응답에 관련 Jira key를 표시하지만 title 표시만을 위해 branch 또는 worktree를 만들지 않습니다. Claude도 같은 안내 및 branch-key 검증 규칙을 따르지만 Codex terminal-title 동작을 제공한다고 주장하지 않습니다. TUI 설정 변경 후 새 Codex session이 필요할 수 있습니다.
 
-The package copies files instead of creating links so it also supports Claude Code versions before skill-directory symlink support. Installed skills contain only instructions and a read-only package-tool locator; credentials and ignored Jira config are never copied.
+이 패키지는 link 대신 파일을 복사하므로 skill directory symlink 지원 이전 Claude Code 버전도 지원합니다. 설치 skill에는 지침과 읽기 전용 package tool locator만 포함하며 자격 증명과 Git에서 제외된 Jira config는 복사하지 않습니다.
 
-Managed state is stored at ignored project-local `UserSettings/ActionFitPackageManager/skill-install-state.json`. A missing managed target is restored, and an unchanged managed target is refreshed when package content changes. Existing unmanaged targets and user-modified managed targets are preserved with a warning. Automatic install never writes to a user home/global skill directory, never deletes a skill, and is skipped in Unity batch mode. Explicit removal deletes only unchanged managed targets and disables automatic recreation until the install/refresh command is used again.
+Managed state는 Git에서 제외된 project-local `UserSettings/ActionFitPackageManager/skill-install-state.json`에 저장합니다. 누락된 managed target은 복원하고 패키지 콘텐츠 변경 시 변경되지 않은 managed target을 refresh합니다. 기존 unmanaged target과 사용자가 수정한 managed target은 경고와 함께 보존합니다. 자동 설치는 user home/global skill 디렉터리에 쓰거나 skill을 삭제하지 않으며 Unity batch mode에서 건너뜁니다. 명시적 제거는 변경되지 않은 managed target만 삭제하고 install/refresh 명령을 다시 사용할 때까지 자동 재생성을 비활성화합니다.
 
-Existing `UserSettings/AIJira/skill-install-state.json` remains in place as migration input. Custom Package Manager adopts a legacy target only when its current hash still matches the recorded installed hash and also preserves a previously disabled automatic-install preference. AI Jira depends on Custom Package Manager `1.1.96` so direct AI Jira installation receives schema v2 inventory generation through the same single installation engine used by every ActionFit package instead of activating a Jira-specific second writer.
+기존 `UserSettings/AIJira/skill-install-state.json`은 migration 입력으로 제자리에 유지합니다. Custom Package Manager는 현재 hash가 기록된 installed hash와 여전히 일치할 때만 legacy target을 인수하고 이전에 비활성화한 자동 설치 설정도 보존합니다. AI Jira는 Custom Package Manager `1.1.96`에 의존하므로 AI Jira 직접 설치도 Jira 전용 두 번째 writer 대신 모든 ActionFit 패키지가 사용하는 하나의 설치 engine을 통해 schema v2 inventory를 생성합니다.
 
-## AI Guide
+## AI 가이드
 
-- Read `AI_GUIDE.md` before changing Jira automation rules, local Jira config behavior, issue lifecycle handling, or Jira REST scripts.
+- Jira 자동화 규칙, local Jira config 동작, issue lifecycle 처리 또는 Jira REST script를 변경하기 전에 `AI_GUIDE.md`를 읽습니다.
 
-## Work-Item API And CLI
+## 작업 항목 API 및 CLI
 
-Use the package-owned read-only tool from a consuming Unity project root:
+사용하는 Unity 프로젝트 root에서 패키지 소유 읽기 전용 도구를 실행합니다.
 
 ```bash
 python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state all
@@ -77,11 +77,11 @@ python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state todo --
 python3 Packages/com.actionfit.ai-jira/Tools~/get_work_item.py MCC-1234 --format json
 ```
 
-`--state all` includes the configured `todo` and `progress` states, not completed work. It remains available for general read-only callers, but `jira-todo` does not use it for candidate selection: the skill calls `--state todo` for recommendations and `--state progress` separately for overlap detection. Every query automatically limits results to the configured project, `assignee = currentUser()`, and unresolved issues, then sorts by most recently updated. Detail JSON includes `configuredStatuses`, normalized `issueLinks`, and `descriptionContract`. The contract reports managed-section completeness, the three Auto Start fields, explicit prerequisite keys, unresolved decisions, and deterministic `ready`, `needs-plan`, or `blocked` description state. Repository safety, overlap, and external approval remain higher-level skill judgments.
+`--state all`은 완료 작업이 아니라 설정된 `todo`와 `progress` 상태를 포함합니다. 일반 read-only 호출에서 사용할 수 있지만 `jira-todo`는 후보 선택에 사용하지 않습니다. 추천에는 `--state todo`, overlap 감지에는 별도로 `--state progress`를 호출합니다. 모든 query는 결과를 설정된 프로젝트, `assignee = currentUser()`, 미해결 issue로 자동 제한하고 최근 업데이트 순으로 정렬합니다. Detail JSON에는 `configuredStatuses`, 정규화된 `issueLinks`, `descriptionContract`가 포함됩니다. Contract는 managed section 완전성, 세 Auto Start field, 명시적 prerequisite key, unresolved decision과 결정론적 `ready`, `needs-plan`, `blocked` description 상태를 보고합니다. 저장소 안전, overlap과 외부 승인은 상위 skill이 판단합니다.
 
-Text output includes the issue key, status, title, and update time. JSON output adds the resolved status filters, JQL, issue URL, pagination metadata when Jira returns it, and preserves Korean text with UTF-8 rather than `\u` escapes.
+Text 출력에는 issue key, status, title, update time이 포함됩니다. JSON 출력에는 해석된 status filter, JQL, issue URL과 Jira가 반환한 pagination metadata가 추가되며 한국어를 `\u` escape가 아닌 UTF-8로 보존합니다.
 
-The Python API is also available for another package-local tool:
+다른 package-local 도구에서도 Python API를 사용할 수 있습니다.
 
 ```python
 from jira_work_items import load_config, query_work_items
@@ -89,23 +89,23 @@ from jira_work_items import load_config, query_work_items
 result = query_work_items(load_config(), state="progress", max_results=50)
 ```
 
-Configuration resolution order is `--config`, `AI_JIRA_CONFIG`, then the consuming project's ignored `Tools/AI/jira/config.local.json`. UTF-8 and UTF-8-with-BOM JSON are both accepted. The work-item client exposes only Jira enhanced search and has no write method.
+설정 해석 순서는 `--config`, `AI_JIRA_CONFIG`, 사용하는 프로젝트에서 Git 제외된 `Tools/AI/jira/config.local.json`입니다. UTF-8과 BOM이 있는 UTF-8 JSON을 모두 허용합니다. Work-item client는 Jira enhanced search만 노출하고 write method는 제공하지 않습니다.
 
-The legacy project command remains compatible and now accepts the same `--state`, `--format`, and `--max-results` options:
+Legacy 프로젝트 명령도 호환성을 유지하며 같은 `--state`, `--format`, `--max-results` option을 받습니다.
 
 ```bash
 python3 Tools/AI/jira/list_my_tasks.py --state progress --format json
 ```
 
-Run the package tests without Unity:
+Unity 없이 패키지 test를 실행합니다.
 
 ```bash
 python3 -m unittest discover Packages/com.actionfit.ai-jira/Tests~ -p "test_*.py"
 ```
 
-## Managed Description Contract
+## 관리되는 설명 계약
 
-AI-created Jira titles are Korean. The QA heading, planned QA checks, and completion records are also Korean and remain at the top. Every other newly managed heading and body is English:
+AI가 생성하는 Jira title은 한국어입니다. QA heading, 계획 QA 확인 항목과 완료 기록도 한국어이며 상단에 유지합니다. 그 밖의 새 managed heading과 본문은 영어입니다.
 
 ```md
 ## QA 확인 필요 사항
@@ -120,24 +120,24 @@ AI-created Jira titles are Korean. The QA heading, planned QA checks, and comple
 - Prerequisites: none
 - Decisions Required: none
 
-## Goal
+## 목표
 
-## Scope
+## 범위
 
-## Out of Scope
+## 제외 범위
 
-## Completion Criteria
+## 완료 기준
 
-## Validation Plan
+## 검증 계획
 
-## Dependencies and Risks
+## 의존성과 위험
 ```
 
-Keep exactly one Korean `### 계획`, all three Auto Start fields, and every English heading. Each English section must contain content; use `None.` when no item applies.
+한국어 `### 계획` 하나, Auto Start field 세 개와 모든 영어 heading을 정확히 유지합니다. 각 영어 section에는 내용이 있어야 하며 해당 항목이 없으면 `None.`을 사용합니다.
 
-The managed description above is the canonical Jira storage representation. Before asking the user to approve creation or needs-plan refinement, `jira-plan`, `jira-auto-start`, and `jira-run` derive a full Korean conversational view from it using `Skills~/Shared/references/korean-approval-preview.md`. That view translates the managed headings, field labels, control values, and explanatory content while preserving operational identifiers. The pre-preview canonical draft remains the only allowed write payload.
+위 managed description이 canonical Jira 저장 표현입니다. 생성 또는 needs-plan refinement 승인을 요청하기 전에 `jira-plan`, `jira-auto-start`, `jira-run`이 `Skills~/Shared/references/korean-approval-preview.md`를 사용해 완전한 한국어 대화 view를 만듭니다. 해당 view는 운영 식별자를 보존하면서 managed heading, field label, control value와 설명을 번역합니다. Preview 전 canonical draft만 허용된 write payload입니다.
 
-Existing Jira descriptions are never bulk-migrated. A needs-plan issue stays in todo during collaboration and approval. After the user approves the complete Korean view and its corresponding canonical draft, the workflow rechecks the unchanged todo snapshot, acquires a transient progress lock, and may update only the managed plan with the independent `allow_description_plan_refinement` gate, the captured post-transition Jira `updated` value, and the verified progress status:
+기존 Jira description을 bulk migration하지 않습니다. Needs-plan issue는 협업과 승인 중 todo에 유지합니다. 사용자가 완전한 한국어 view와 대응 canonical draft를 승인하면 workflow가 변경되지 않은 todo snapshot을 다시 확인하고 일시적 progress lock을 얻습니다. 이후 독립 `allow_description_plan_refinement` gate, 캡처한 전환 후 Jira `updated` 값과 검증된 progress status를 사용해 managed plan만 업데이트할 수 있습니다.
 
 ```bash
 python3 Tools/AI/jira/update_description.py MCC-1234 \
@@ -146,38 +146,38 @@ python3 Tools/AI/jira/update_description.py MCC-1234 \
   --expected-updated "2026-07-15T02:22:47.217+0000"
 ```
 
-The operation preserves existing QA completion records and unmanaged top-level sections. Plan-only work returns to todo. Plan-and-implementation continues immediately and must later finalize to done or todo. Update failure attempts todo rollback; locks never expire or get stolen automatically. Progress triage applies deterministic precedence: active work evidence first, otherwise a matching lease is reserved, otherwise the issue is stranded-review when only merged/closed PRs or no active work evidence remains.
+이 작업은 기존 QA 완료 기록과 unmanaged top-level section을 보존합니다. Plan-only 작업은 todo로 돌아갑니다. Plan-and-implementation은 즉시 계속하며 이후 done 또는 todo로 finalize해야 합니다. Update 실패 시 todo rollback을 시도하고 lock은 자동 만료되거나 탈취되지 않습니다. Progress triage는 결정론적 우선순위를 적용합니다. Active work 증거가 우선이고, 없으면 일치 lease를 reserved로 처리하며, merged/closed PR만 있거나 active work 증거가 없으면 stranded-review로 분류합니다.
 
-The project `create_issue.py` validates this managed contract before sending a Jira write, so incomplete or unresolved new drafts fail locally instead of creating malformed todo work.
+프로젝트 `create_issue.py`는 Jira write 전에 이 managed contract를 검증하므로 불완전하거나 unresolved인 새 draft는 잘못된 todo 작업을 만들지 않고 로컬에서 실패합니다.
 
-## Personal Jira Credentials
+## 개인 Jira 자격 증명
 
-Jira task discovery uses the authenticated Atlassian account. Each developer must use their own Jira account email and API token so `assignee = currentUser()` returns that developer's work.
+Jira 작업 검색은 인증된 Atlassian 계정을 사용합니다. `assignee = currentUser()`가 해당 개발자의 작업을 반환하도록 각 개발자는 자신의 Jira 계정 email과 API token을 사용해야 합니다.
 
-If the developer already has an API token, set it locally:
+API token이 이미 있으면 로컬 환경에 설정합니다.
 
 ```bash
 export JIRA_EMAIL="name@company.com"
 export JIRA_API_TOKEN="your-atlassian-api-token"
 ```
 
-If the developer does not have an API token, create one from Atlassian Account security:
+API token이 없으면 Atlassian Account security에서 생성합니다.
 
 https://id.atlassian.com/manage-profile/security/api-tokens
 
-After creating the token, copy it immediately and store it in a password manager. Atlassian does not show the token again after creation. Do not commit the token, paste it into shared chat, or store it in a tracked project file.
+Token 생성 직후 복사해 password manager에 보관합니다. Atlassian은 생성 후 token을 다시 보여주지 않습니다. Token을 commit하거나 공유 chat에 붙여 넣거나 추적되는 프로젝트 파일에 저장하지 않습니다.
 
-Project-local scripts may also read ignored `Tools/AI/jira/config.local.json`, but environment variables are preferred for personal credentials.
+Project-local script는 Git에서 제외된 `Tools/AI/jira/config.local.json`도 읽을 수 있지만 개인 자격 증명은 환경 변수를 권장합니다.
 
-## Issue Creation Defaults
+## 이슈 생성 기본값
 
-When `Tools/AI/jira/create_issue.py` creates a Jira issue, the default owner is the authenticated Jira API user. The script resolves `/rest/api/3/myself` and writes that account id to the issue `assignee` field when `issue_create.assign_to_current_user` is true or omitted.
+`Tools/AI/jira/create_issue.py`가 Jira issue를 만들 때 기본 owner는 인증된 Jira API 사용자입니다. `issue_create.assign_to_current_user`가 true이거나 생략되면 script가 `/rest/api/3/myself`를 해석하고 해당 account ID를 issue `assignee` 필드에 씁니다.
 
-New issues should land in the configured `todo` status by default. If the Jira project workflow creates the issue in another initial status, the create script should immediately transition the issue to `issue_create.create_status`, normally `statuses.todo`, before returning the created issue key. Move issues to `progress` only when implementation actually starts.
+새 issue는 기본적으로 설정된 `todo` status에 생성해야 합니다. Jira 프로젝트 workflow가 다른 초기 status로 issue를 만들면 create script가 생성 issue key를 반환하기 전에 즉시 `issue_create.create_status`, 일반적으로 `statuses.todo`로 전환해야 합니다. 실제 구현을 시작할 때만 issue를 `progress`로 옮깁니다.
 
-New issues created through the normal AI Jira path are required to belong to the current active sprint. That path does not support backlog placement; create an intentional backlog exception manually outside `Tools/AI/jira/create_issue.py`.
+일반 AI Jira 경로로 만드는 새 issue는 현재 active sprint에 속해야 합니다. 해당 경로는 backlog 배치를 지원하지 않으므로 의도적인 backlog 예외는 `Tools/AI/jira/create_issue.py` 밖에서 수동 생성합니다.
 
-Enable the sprint write gate and active-sprint creation default in ignored local config:
+Git에서 제외된 local config에서 sprint write gate와 active sprint 생성 기본값을 활성화합니다.
 
 ```json
 {
@@ -192,15 +192,15 @@ Enable the sprint write gate and active-sprint creation default in ignored local
 }
 ```
 
-Use `board_id` for normal work so the client resolves the current active sprint immediately before creating the issue. Use `active_sprint_id` only when a fixed sprint is intentionally required. Keep these IDs in ignored local config because board and sprint IDs are project-specific.
+일반 작업은 `board_id`를 사용해 client가 issue 생성 직전에 현재 active sprint를 해석하게 합니다. 고정 sprint가 의도적으로 필요할 때만 `active_sprint_id`를 사용합니다. Board 및 sprint ID는 프로젝트별 값이므로 Git에서 제외된 local config에 보관합니다.
 
-Compatible Jira clients treat a missing `add_to_active_sprint_after_create` value as `true` and reject an explicit `false` before the Jira create request. If sprint writes are disabled or no active sprint can be resolved unambiguously, creation is blocked rather than downgraded to the backlog.
+호환 Jira client는 누락된 `add_to_active_sprint_after_create` 값을 `true`로 처리하고 Jira create 요청 전에 명시적 `false`를 거부합니다. Sprint write가 비활성화되었거나 active sprint를 모호함 없이 해석할 수 없으면 backlog로 낮추지 않고 생성을 차단합니다.
 
-After creation, the client must re-read the issue and verify the authenticated assignee, configured `todo` status, and expected sprint membership before reporting success. Use enhanced JQL search with `reconcileIssues` when the create response provides the numeric issue id so the membership check has stronger read-after-write consistency. If Jira created the issue but sprint assignment or later verification fails, report the created issue key, expected sprint, exact mismatch, and manual recovery action without deleting the issue.
+생성 후 client는 issue를 다시 읽고 인증 assignee, 설정된 `todo` status와 예상 sprint membership을 검증한 뒤 성공을 보고해야 합니다. Create response가 숫자 issue ID를 제공하면 `reconcileIssues`가 있는 enhanced JQL search를 사용해 membership 검사에 더 강한 read-after-write 일관성을 확보합니다. Jira가 issue를 만들었지만 sprint 할당 또는 이후 검증이 실패하면 issue를 삭제하지 않고 생성 key, 예상 sprint, 정확한 불일치와 수동 복구 작업을 보고합니다.
 
-## Session Finalization
+## 세션 마무리
 
-For Jira-backed development work, creating a PR is not enough to finish the Jira lifecycle. After the PR URL exists, prepend Korean QA notes when enabled and finalize to configured done. Incomplete work finalizes to todo with a current Korean handoff record.
+Jira 기반 개발 작업은 PR 생성만으로 Jira lifecycle이 끝나지 않습니다. PR URL이 생긴 뒤 활성화된 경우 한국어 QA note를 앞에 추가하고 설정된 done으로 finalize합니다. 미완료 작업은 현재 한국어 handoff 기록과 함께 todo로 finalize합니다.
 
 Use:
 
@@ -213,16 +213,16 @@ python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome incomplete \
   --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
-Done verifies progress, the issue-specific Korean QA completion record, PR URL, transition, and resulting status. Incomplete requires `allow_description_append` and `allow_transition`, upserts a heading that cannot satisfy the QA completion pattern, verifies the description, and verifies todo. Description update and transition are separate Jira operations, so a verified handoff can remain after a transition failure; report that partial result and recovery action explicitly.
+Done은 progress, issue별 한국어 QA 완료 기록, PR URL, transition과 결과 status를 검증합니다. Incomplete에는 `allow_description_append`와 `allow_transition`이 필요하며 QA 완료 pattern을 만족할 수 없는 heading을 upsert하고 description과 todo를 검증합니다. Description update와 transition은 별도 Jira 작업이므로 transition 실패 후에도 검증된 handoff가 남을 수 있습니다. 해당 부분 결과와 복구 작업을 명시적으로 보고합니다.
 
-An incomplete open PR may be resumed for the same issue only after Jira returns to todo and no active lease owns it. A merged or closed PR branch is never reused; follow-up work starts from the latest integration branch with a new PR.
+미완료 open PR은 Jira가 todo로 돌아오고 active lease가 소유하지 않을 때만 같은 issue로 재개할 수 있습니다. Merge 또는 close된 PR branch는 재사용하지 않으며 후속 작업은 최신 integration branch에서 새 PR로 시작합니다.
 
-## Legacy Package
+## 레거시 패키지
 
-- `com.actionfit.ai_guide_jira` was a placeholder guide package and should not be installed together with this package.
-- Use `com.actionfit.ai-jira` as the canonical Jira automation guidance package.
+- `com.actionfit.ai_guide_jira`는 placeholder guide 패키지였으므로 이 패키지와 함께 설치하면 안 됩니다.
+- Canonical Jira 자동화 guide 패키지로 `com.actionfit.ai-jira`를 사용합니다.
 
-## Migration Notes
+## 마이그레이션 참고 사항
 
-- Project-local secrets and board mappings must remain outside the package in ignored local config files.
-- Compatibility wrappers should preserve existing project paths until all AI docs and workflows have moved to package-owned routing.
+- Project-local secret과 board mapping은 패키지 밖의 Git 제외 local config 파일에 유지해야 합니다.
+- 모든 AI 문서와 workflow가 패키지 소유 routing으로 이동할 때까지 compatibility wrapper가 기존 프로젝트 경로를 보존해야 합니다.

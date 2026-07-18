@@ -1,6 +1,6 @@
 {
   "name": "com.actionfit.ai-jira",
-  "version": "1.0.20",
+  "version": "1.0.23",
   "displayName": "AI Jira",
   "description": "ActionFit AI agents use this package for Jira planning, work discovery, automatic bounded task pickup, lifecycle guidance, and safe automation.",
   "unity": "6000.2",
@@ -8,6 +8,6 @@
     "name": "ActionFit"
   },
   "dependencies": {
-    "com.actionfit.custompackagemanager": "1.1.103"
+    "com.actionfit.custompackagemanager": "1.1.106"
   }
 }
