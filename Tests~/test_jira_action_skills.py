@@ -237,14 +237,14 @@ class JiraActionSkillTests(unittest.TestCase):
         self.assertIn("context compaction", scenarios["interrupted_canonical_state"]["recoveryEvidence"])
 
     def test_codex_write_skills_disable_implicit_invocation(self) -> None:
-        for name in ("jira-plan", "jira-auto-start", "jira-run"):
+        for name in ("jira-init", "jira-plan", "jira-auto-start", "jira-run"):
             path = PACKAGE_ROOT / "Skills~" / "Codex" / name / "agents" / "openai.yaml"
             metadata = path.read_text(encoding="utf-8")
 
             self.assertIn("allow_implicit_invocation: false", metadata)
 
     def test_claude_write_skills_disable_model_invocation(self) -> None:
-        for name in ("jira-plan", "jira-auto-start", "jira-run"):
+        for name in ("jira-init", "jira-plan", "jira-auto-start", "jira-run"):
             contents = self._read_skill("Claude", name)
             self.assertIn("disable-model-invocation: true", contents)
 

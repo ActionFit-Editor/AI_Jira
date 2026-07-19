@@ -14,6 +14,10 @@ class JiraHelpSkillTests(unittest.TestCase):
 
         self.assertIn("`PACKAGE_SKILLS.md`", contents)
         self.assertIn("complete related-skill list", contents)
+        self.assertIn("jira-init/scripts/ai_jira_init.py", contents)
+        self.assertIn("status --format json", contents)
+        self.assertIn("setup --open-folder --format json", contents)
+        self.assertIn("https://id.atlassian.com/manage-profile/security/api-tokens", contents)
         self.assertIn(".agents/skills/jira-help/scripts/ai_jira_cli.py", contents)
         self.assertIn("list --state todo", contents)
         self.assertIn("list --state progress", contents)
@@ -41,6 +45,10 @@ class JiraHelpSkillTests(unittest.TestCase):
 
         self.assertIn("`PACKAGE_SKILLS.md`", contents)
         self.assertIn("complete related-skill list", contents)
+        self.assertIn("jira-init/scripts/ai_jira_init.py", contents)
+        self.assertIn("status --format json", contents)
+        self.assertIn("setup --open-folder --format json", contents)
+        self.assertIn("https://id.atlassian.com/manage-profile/security/api-tokens", contents)
         self.assertIn(".claude/skills/jira-help/scripts/ai_jira_cli.py", contents)
         self.assertIn("list --state todo", contents)
         self.assertIn("list --state progress", contents)
@@ -71,6 +79,7 @@ class JiraHelpSkillTests(unittest.TestCase):
         by_name = {skill["name"]: skill for skill in manifest["skills"]}
         self.assertEqual("read-only", by_name["jira-help"]["access"])
         self.assertEqual("read-only", by_name["jira-todo"]["access"])
+        self.assertEqual("write-capable", by_name["jira-init"]["access"])
         self.assertEqual("write-capable", by_name["jira-run"]["access"])
         self.assertEqual({"codex", "claude"}, set(by_name["jira-help"]["agents"]))
 

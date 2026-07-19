@@ -23,6 +23,17 @@ Explain these sections in this order:
 
 ## Command Catalog
 
+Initialize or diagnose project-local Jira access:
+
+```bash
+python3 .agents/skills/jira-init/scripts/ai_jira_init.py status --format json
+python3 .agents/skills/jira-init/scripts/ai_jira_init.py setup --open-folder --format json
+```
+
+- `status`: Jira read-only; classify missing config, credentials, authentication, permissions, project/status mappings, network failures, or a successful connection without displaying secret values.
+- `setup --open-folder`: local write; add clone-local Git exclusion, create a missing no-overwrite config template with restricted permissions, and reveal its input location. It does not change Jira.
+- For token creation, direct the user to `https://id.atlassian.com/manage-profile/security/api-tokens` and never ask them to paste a token into chat.
+
 Run installed read-only commands from the consuming project root:
 
 ```bash
@@ -62,6 +73,7 @@ python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome incomplete --comple
 ## Configuration And Safety
 
 - Resolve ignored project configuration from `Tools/AI/jira/config.local.json`, an explicit `--config`, or `AI_JIRA_CONFIG` as documented by the package.
+- Prefer `$jira-init` for connection diagnostics and first-time setup. Existing config is preserved, tracked config is blocked, and setup uses the clone-local Git exclude file instead of editing tracked `.gitignore`.
 - Keep `JIRA_EMAIL` and `JIRA_API_TOKEN` in environment variables or ignored local config. Never display or request a token in shared chat.
 - State that write commands may be blocked by `dry_run` or individual `allow_*` gates. Access to a command is not authorization to run it.
 - Explain that Jira titles and QA content are Korean while other newly managed description content is English; existing issues are not migrated in bulk.

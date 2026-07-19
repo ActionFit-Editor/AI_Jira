@@ -8,6 +8,15 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 REPOSITORY_ROOT = PACKAGE_ROOT.parents[1]
 PROJECT_JIRA_DIR = REPOSITORY_ROOT / "Tools" / "AI" / "jira"
+REQUIRED_PROJECT_TOOLS = (
+    "create_issue.py",
+    "finalize_session.py",
+    "jira_client.py",
+    "transition_issue.py",
+    "update_description.py",
+)
+if not all((PROJECT_JIRA_DIR / name).is_file() for name in REQUIRED_PROJECT_TOOLS):
+    raise unittest.SkipTest("Consuming project does not provide optional Jira write compatibility tools.")
 sys.path.insert(0, str(PROJECT_JIRA_DIR))
 
 from create_issue import validate_new_description

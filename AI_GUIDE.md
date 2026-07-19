@@ -7,12 +7,12 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.23`
+- Current package version at generation time: `1.0.24`
 - Unity version: `6000.2`
 
 ## Purpose
 
-AI Jira provides project-local Codex and Claude help, triage, planning, automatic bounded pickup, and explicit-run skills, a read-only work-item API/CLI, and Jira automation guidance for AI agents: safe issue creation, task discovery, terminal session finalization, mixed-language managed descriptions, transient planning locks, bounded description updates, and local secret configuration.
+AI Jira provides project-local Codex and Claude help, connection initialization, triage, planning, automatic bounded pickup, and explicit-run skills, a read-only work-item API/CLI, and Jira automation guidance for AI agents: safe issue creation, task discovery, terminal session finalization, mixed-language managed descriptions, transient planning locks, bounded description updates, and local secret configuration.
 
 The package owns status-filtered work-item discovery. Consuming projects may keep compatibility entry points at project-local paths such as `Tools/AI/jira/list_my_tasks.py`; write-oriented automation may remain project-local until it is migrated separately.
 
@@ -29,6 +29,7 @@ If the router file is not already included in the AI assistant's default reading
 Read this file when:
 
 - creating or updating Jira issues through AI automation
+- diagnosing Jira access or initializing ignored project-local Jira configuration
 - changing files under `Packages/com.actionfit.ai-jira/`
 - changing project-local Jira automation scripts or compatibility wrappers
 - editing Jira config examples, local config rules, status mappings, or write-safety flags
@@ -38,6 +39,8 @@ Read this file when:
 
 - Jira credentials, board IDs, real base URLs, status names, and user-specific config must stay in ignored local config files or environment variables.
 - Jira task discovery must use the developer's own Atlassian account email and API token. If credentials are missing, tell the user to either set their existing token as `JIRA_API_TOKEN` or create one from `https://id.atlassian.com/manage-profile/security/api-tokens`, then set `JIRA_EMAIL` and `JIRA_API_TOKEN` locally.
+- `jira-init` must run the package-owned `Tools~/jira_init.py` through its installed `scripts/ai_jira_init.py` locator. Diagnose first, then create only a missing no-overwrite template, protect it with clone-local Git exclusion and restrictive permissions, and reveal the input location when setup is needed. Existing config must be preserved, tracked config must block credential setup, and tokens must never appear in output.
+- Jira connection diagnosis may call only `/rest/api/3/myself` and the enhanced read-only search endpoint. Classify missing config, incomplete mappings, missing credentials, credentials misplaced into environment-variable-name fields, authentication, permission, site, JQL, network, and rate-limit failures without echoing HTTP bodies or secrets.
 - Use `Tools~/list_work_items.py` for direct Jira work-list retrieval. `--state todo` reads the configured todo status, `--state progress` reads approved plan writes or active implementation and recovery evidence, and `--state all` combines todo and progress while excluding completed work.
 - `jira-todo` must query `todo` and `progress` separately. Only `todo` results may be recommended as new work. Classify progress evidence from Jira, branch, PR, worktree, lease, and Unity-process state with deterministic precedence: `active` first, otherwise `reserved`, otherwise `stranded-review`. A matching lease is reserved regardless of acquisition PID liveness only when active evidence is absent. Never expire, release, or steal it automatically.
 - `jira-auto-start` must query `todo` and `progress` separately, evaluate every todo issue in query order, and report each issue as `startable`, `needs-plan`, `blocked`, or `approval-required` with evidence. It executes the first startable issue; only when none is startable may it acquire a planning lock for the first needs-plan issue. It may recognize prerequisites only from inward blocking/dependency links or issue keys explicitly listed in a prerequisite section; arbitrary references and outward `blocks` links are not prerequisites. Every declared prerequisite must be read and have either a non-empty resolution or the configured `done` status. Missing, unreadable, todo, progress, unknown, or ambiguous prerequisites make the candidate blocked.
@@ -70,9 +73,9 @@ Read this file when:
 - Do not perform unrestricted full-description overwrites. Append requirements, prepend QA, or replace only the approved managed plan when the matching local gate allows it. Managed replacement requires the progress planning lock and matching Jira `updated` value and must preserve prior QA completion records and unmanaged sections.
 - Do not add AI-created labels or move issues to a QA status. QA-board movement remains a manual user action after build verification.
 - Keep Jira REST calls behind the package/client boundary so projects can replace auth or endpoint details without changing workflow rules.
-- Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and use schema v2 `Skills~/manifest.json` with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit `access`. `Skills~/Shared/references/korean-approval-preview.md` owns the dual-representation approval contract for both agents. Custom Package Manager copies registered sources to project-local `.agents/skills` and `.claude/skills`, overlays shared files from `Skills~/Shared`, and generates the managed `PACKAGE_SKILLS.md` only inside installed `jira-help` targets.
-- `jira-help` and `jira-todo` must remain read-only. `jira-plan`, `jira-auto-start`, and `jira-run` are write-capable and must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
-- AI Jira depends on `com.actionfit.custompackagemanager` `1.1.96` so schema v2 installation and generated inventory have one shared owner. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
+- Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and use schema v2 `Skills~/manifest.json` with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit `access`. `Skills~/Shared/references/korean-approval-preview.md` owns the dual-representation approval contract for both agents, while `Skills~/Shared/scripts/ai_jira_init.py` locates the package-owned initialization CLI. Custom Package Manager copies registered sources to project-local `.agents/skills` and `.claude/skills`, overlays shared files from `Skills~/Shared`, and generates the managed `PACKAGE_SKILLS.md` only inside installed `jira-help` targets.
+- `jira-help` and `jira-todo` must remain read-only. `jira-init` is write-capable only because it creates protected local setup and opens its input location; its Jira probes remain read-only. `jira-init`, `jira-plan`, `jira-auto-start`, and `jira-run` must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
+- AI Jira depends on `com.actionfit.custompackagemanager` `1.1.106` so schema v2 installation and generated inventory have one shared owner. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
 - Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. New managed hashes belong in `UserSettings/ActionFitPackageManager/skill-install-state.json`; the preserved `UserSettings/AIJira/skill-install-state.json` is migration input only.
 - Package refresh may update only a target whose current directory hash matches the recorded installed hash. Explicit removal may delete only the same unchanged targets and must preserve modified or linked directories.
 
@@ -80,7 +83,7 @@ Read this file when:
 
 - Existing projects may continue to call `Tools/AI/jira/*.py` compatibility entry points, including `finalize_session.py` when present.
 - The old `AiJiraSkillInstallService` remains source-compatible but has no automatic bootstrap or menu caller. Custom Package Manager owns active discovery, installation, refresh, removal, collision handling, and legacy ownership migration.
-- This package owns portable rules and the read-only work-item implementation under `Tools~/`.
+- This package owns portable rules, the safe local initialization/diagnostic tool, and the read-only work-item implementation under `Tools~/`.
 - Write-oriented issue creation, description updates, and transitions remain behind project-local compatibility clients until migrated separately.
 - `com.actionfit.ai_guide_jira` was a placeholder guide package. Treat `com.actionfit.ai-jira` as the canonical Jira automation package and move dependencies, router entries, and documentation references here instead of installing both.
 
