@@ -28,6 +28,7 @@ Use these user-visible mappings:
 | `Decisions Required` | `결정 필요 사항` |
 | `## Goal` | `## 목표` |
 | `## Scope` | `## 범위` |
+| `### Confirmed Decisions` | `### 확정된 결정` |
 | `## Out of Scope` | `## 제외 범위` |
 | `## Completion Criteria` | `## 완료 기준` |
 | `## Validation Plan` | `## 검증 계획` |

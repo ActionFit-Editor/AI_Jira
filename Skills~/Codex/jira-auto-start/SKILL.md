@@ -1,6 +1,6 @@
 ---
 name: jira-auto-start
-description: Classify every assigned unresolved Jira todo as startable, needs-plan, blocked, or approval-required; execute the first startable issue or refine the first needs-plan issue through a complete Korean approval view backed by the exact mixed-language Jira draft when none can start. Use when the user asks Jira to find and automatically advance one eligible task.
+description: Classify every assigned unresolved Jira todo, execute the first startable issue, or collaboratively resolve material decisions for the first needs-plan issue before producing its approved plan.
 ---
 
 # Jira Auto Start
@@ -12,7 +12,7 @@ Advance exactly one bounded Jira task. Treat explicit invocation as approval to 
 1. From the consuming project root, run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py list --state todo --format json`. Only these issues may become new work.
 2. Separately run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py list --state progress --format json`. Use these issues only as overlap, dependency, exclusion, and stranded-progress recovery evidence.
 3. Read every todo candidate with `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py detail <ISSUE-KEY> --format json` in query order. Use its `issueLinks` and `configuredStatuses` as prerequisite evidence.
-4. Read `AGENTS.md`, `CLAUDE.md`, and linked repository guidance before judging scope.
+4. Read `AGENTS.md`, `CLAUDE.md`, linked repository guidance, and `references/planning-decision-collaboration.md` before judging scope or deciding that an implementation direction is unambiguous.
 5. Inspect branches, worktrees, leases, Unity processes, and pull requests with read-only commands to detect existing, overlapping, or stranded work. Classify each progress issue with deterministic precedence: `active` when an open PR, dirty worktree, Unity process, or equivalent current-work evidence exists; otherwise `reserved` when a matching lease exists, regardless of acquisition PID liveness; otherwise `stranded-review` when only merged/closed PRs or no active work evidence remains. Never expire, release, or steal a lease during discovery.
 
 ## Resolve Prerequisites
@@ -55,8 +55,8 @@ Announce the selected issue first with the exact standalone user-visible comment
 ## Refine A Needs-Plan Issue
 
 1. Re-read the selected issue and require its status to equal `configuredStatuses.todo`.
-2. Capture the todo issue's `updated` value. While it remains in todo, prepare the canonical `jira-plan` storage draft: Korean Jira title and QA section, English `Auto Start`, `Goal`, `Scope`, `Out of Scope`, `Completion Criteria`, `Validation Plan`, and `Dependencies and Risks` content.
-3. Read `references/korean-approval-preview.md`, retain that exact canonical draft, show its complete Korean approval view, and ask for explicit approval of either **plan only** or **plan update and auto-start**. Explain that approval writes the corresponding canonical mixed-language draft.
+2. Capture the todo issue's `updated` value. While it remains in todo, follow `references/planning-decision-collaboration.md` through bounded question rounds, answer re-scans, and explicit decision closure. Show decision progress only while a material decision remains unresolved.
+3. After decision closure, prepare the canonical `jira-plan` storage draft with confirmed choices under `Scope > Confirmed Decisions`: Korean Jira title and QA section, English `Auto Start`, `Goal`, `Scope`, `Out of Scope`, `Completion Criteria`, `Validation Plan`, and `Dependencies and Risks` content. Read `references/korean-approval-preview.md`, retain that exact canonical draft, show its complete Korean approval view, and ask for explicit approval of either **plan only** or **plan update and auto-start**. Explain that approval writes the corresponding canonical mixed-language draft.
 4. After approval, re-read and require the same todo status and captured `updated` value. If either differs, regenerate and reapprove without transitioning. After a match, move it to `progress` through `python3 .agents/skills/jira-auto-start/scripts/ai_jira_write_cli.py transition`, verify the transient planning lock, and capture its post-transition `updated` value. Do not create a branch or worktree for plan-only work.
 5. Call the same locator's `update-description` command with `--mode replace-plan`, a temporary file, and the captured `--expected-updated` value, remove the file, then re-read and verify the managed contract.
 6. For plan only, transition back to `todo` through the locator, verify, and stop. For plan update and auto-start, continue immediately with implementation and do not end the invocation in `progress`.

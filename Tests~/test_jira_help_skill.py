@@ -34,6 +34,9 @@ class JiraHelpSkillTests(unittest.TestCase):
         self.assertIn("exact mixed-language storage draft", contents)
         self.assertIn("never a back-translation", contents)
         self.assertIn("lost canonical state", contents)
+        self.assertIn("one-to-three-question rounds", contents)
+        self.assertIn("current planning invocation", contents)
+        self.assertIn("difference, advantages, and disadvantages", contents)
         self.assertIn("Do not query Jira", contents)
         self.assertNotIn("TODO", contents)
 
@@ -61,6 +64,9 @@ class JiraHelpSkillTests(unittest.TestCase):
         self.assertIn("exact pre-preview mixed-language storage draft", contents)
         self.assertIn("never a back-translation", contents)
         self.assertIn("lost canonical state", contents)
+        self.assertIn("one-to-three-question rounds", contents)
+        self.assertIn("current planning invocation", contents)
+        self.assertIn("difference, advantages, and disadvantages", contents)
         self.assertIn("Do not query Jira", contents)
         self.assertNotIn("TODO", contents)
 

@@ -1,6 +1,6 @@
 interface:
   display_name: "Jira Plan"
-  short_description: "새 작업 계획을 한글로 승인하고 Jira에 정리합니다"
-  default_prompt: "Use $jira-plan to discuss a Jira plan, review the complete Korean approval view, and create or refine the issue after approval."
+  short_description: "구현 결정을 함께 확정하고 Jira 계획을 승인합니다"
+  default_prompt: "Use $jira-plan to collaboratively resolve material decisions, close decision discovery, review the complete Korean approval view, and create or refine the issue after approval."
 policy:
   allow_implicit_invocation: false

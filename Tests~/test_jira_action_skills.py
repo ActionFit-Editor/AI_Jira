@@ -7,6 +7,12 @@ from pathlib import Path
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 APPROVAL_REFERENCE = PACKAGE_ROOT / "Skills~" / "Shared" / "references" / "korean-approval-preview.md"
 APPROVAL_FIXTURE = PACKAGE_ROOT / "Tests~" / "Fixtures~" / "korean_approval_preview.json"
+DECISION_REFERENCE = (
+    PACKAGE_ROOT / "Skills~" / "Shared" / "references" / "planning-decision-collaboration.md"
+)
+DECISION_FIXTURE = (
+    PACKAGE_ROOT / "Tests~" / "Fixtures~" / "planning_decision_collaboration.json"
+)
 
 
 class JiraActionSkillTests(unittest.TestCase):
@@ -29,6 +35,7 @@ class JiraActionSkillTests(unittest.TestCase):
             ("`Decisions Required`", "`결정 필요 사항`"),
             ("`## Goal`", "`## 목표`"),
             ("`## Scope`", "`## 범위`"),
+            ("`### Confirmed Decisions`", "`### 확정된 결정`"),
             ("`## Out of Scope`", "`## 제외 범위`"),
             ("`## Completion Criteria`", "`## 완료 기준`"),
             ("`## Validation Plan`", "`## 검증 계획`"),
@@ -48,10 +55,91 @@ class JiraActionSkillTests(unittest.TestCase):
             for name in ("jira-plan", "jira-auto-start", "jira-run"):
                 contents = self._read_skill(agent, name)
 
+                self.assertIn("references/planning-decision-collaboration.md", contents)
                 self.assertIn("references/korean-approval-preview.md", contents)
                 self.assertIn("canonical", contents.lower())
                 self.assertIn("Korean approval view", contents)
                 self.assertIn("regenerate", contents.lower())
+
+    def test_shared_decision_reference_owns_collaborative_planning_contract(self) -> None:
+        contents = DECISION_REFERENCE.read_text(encoding="utf-8")
+
+        for required in (
+            "explicit user requirements",
+            "repository or API-owner guidance",
+            "the installed package guide",
+            "one consistent existing code pattern",
+            "Ask one to three related material questions",
+            "**Difference**",
+            "**Advantages**",
+            "**Disadvantages**",
+            "Recommend one alternative after the comparison",
+            "Re-scan the full intended scope after every answer",
+            "current-question-bundle",
+            "current planning invocation",
+            "explicit decision-closure confirmation",
+            "### Confirmed Decisions",
+            "### 확정된 결정",
+        ):
+            self.assertIn(required, contents)
+
+        self.assertIn("Do not invent alternatives", contents)
+        self.assertIn("Do not prepare or display the approval-ready full plan", contents)
+        self.assertIn("never authorizes access to credentials or sensitive data", contents)
+        self.assertIn("Do not add a new top-level managed heading, enum", contents)
+        self.assertIn("does not require another decision-closure confirmation", contents)
+
+    def test_multi_turn_decision_fixtures_cover_questions_rescans_and_delegation(self) -> None:
+        fixture = json.loads(DECISION_FIXTURE.read_text(encoding="utf-8"))
+        scenarios = {scenario["name"]: scenario for scenario in fixture["scenarios"]}
+
+        self.assertEqual(3, fixture["questionRoundMaximum"])
+        self.assertEqual(
+            {
+                "convention_resolves_single_approach",
+                "multiple_reasonable_approaches",
+                "current_bundle_delegation",
+                "current_invocation_delegation",
+                "unresolved_decision_blocks_plan_write",
+            },
+            set(scenarios),
+        )
+
+        convention = scenarios["convention_resolves_single_approach"]
+        self.assertFalse(convention["questionRequired"])
+        self.assertEqual(
+            "apply-convention-without-question",
+            convention["turns"][0]["expectedAction"],
+        )
+        self.assertTrue(convention["closureConfirmationRequired"])
+
+        alternatives = scenarios["multiple_reasonable_approaches"]
+        self.assertTrue(alternatives["questionRequired"])
+        self.assertEqual(
+            "compare-differences-advantages-disadvantages-then-recommend",
+            alternatives["turns"][0]["expectedAction"],
+        )
+        self.assertEqual(
+            ["discovery", "user-answer", "rescan", "closure"],
+            [turn["phase"] for turn in alternatives["turns"]],
+        )
+        self.assertFalse(alternatives["approvalPreviewAllowed"])
+        self.assertTrue(alternatives["approvalPreviewAllowedAfterClosure"])
+
+        current_bundle = scenarios["current_bundle_delegation"]
+        self.assertEqual("current-question-bundle", current_bundle["delegationScope"])
+        self.assertEqual("ask-new-question", current_bundle["turns"][1]["expectedAction"])
+        self.assertFalse(current_bundle["persistsToNewTask"])
+
+        current_invocation = scenarios["current_invocation_delegation"]
+        self.assertEqual("current-planning-invocation", current_invocation["delegationScope"])
+        self.assertEqual("expire-delegation", current_invocation["turns"][1]["expectedAction"])
+        self.assertTrue(current_invocation["separateApprovalBoundariesRemain"])
+
+        unresolved = scenarios["unresolved_decision_blocks_plan_write"]
+        self.assertFalse(unresolved["approvalPreviewAllowed"])
+        self.assertFalse(unresolved["jiraWriteAllowed"])
+        self.assertFalse(unresolved["decisionsRequiredMayBeNone"])
 
     def test_write_skills_use_the_installed_package_write_locator(self) -> None:
         for agent, helper in (("Codex", ".agents"), ("Claude", ".claude")):
@@ -192,6 +280,19 @@ class JiraActionSkillTests(unittest.TestCase):
             self.assertIn("Planning", contents)
             self.assertIn("read-only", contents)
 
+    def test_package_docs_explain_collaborative_decision_discovery(self) -> None:
+        for path in (PACKAGE_ROOT / "README.md", PACKAGE_ROOT / "AI_GUIDE.md"):
+            contents = path.read_text(encoding="utf-8")
+
+            self.assertIn("planning-decision-collaboration.md", contents)
+            self.assertIn("one to three" if path.name == "AI_GUIDE.md" else "1~3", contents)
+            self.assertIn("planning invocation", contents)
+            self.assertIn("decision closure" if path.name == "AI_GUIDE.md" else "종료 확인", contents)
+            self.assertIn(
+                "advantages and disadvantages" if path.name == "AI_GUIDE.md" else "차이·장점·단점",
+                contents,
+            )
+
     def test_help_skills_explain_visible_identity_configuration(self) -> None:
         for agent in ("Codex", "Claude"):
             contents = self._read_skill(agent, "jira-help")
@@ -260,6 +361,7 @@ class JiraActionSkillTests(unittest.TestCase):
             metadata = path.read_text(encoding="utf-8")
 
             self.assertIn("allow_implicit_invocation: false", metadata)
+            self.assertIn("material decision", metadata)
 
     def test_claude_write_skills_disable_model_invocation(self) -> None:
         for name in ("jira-plan", "jira-auto-start", "jira-run"):

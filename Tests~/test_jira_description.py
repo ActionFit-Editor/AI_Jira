@@ -67,6 +67,18 @@ class JiraDescriptionTests(unittest.TestCase):
         self.assertEqual(["MCC-1400", "MCC-1401"], result["autoStart"]["prerequisiteKeys"])
         self.assertFalse(result["autoStart"]["hasUnresolvedDecisions"])
 
+    def test_confirmed_decisions_nested_under_scope_preserve_ready_contract(self) -> None:
+        description = managed_description().replace(
+            "- Parse the managed contract.",
+            "- Parse the managed contract.\n\n### Confirmed Decisions\n- Use a shared reference because every planning entry point needs the same contract.",
+        )
+
+        result = parse_description_contract(description)
+
+        self.assertEqual("ready", result["state"])
+        self.assertTrue(result["structurallyComplete"])
+        self.assertFalse(result["autoStart"]["hasUnresolvedDecisions"])
+
     def test_missing_contract_sections_need_plan(self) -> None:
         result = parse_description_contract("## QA 확인 필요 사항\n\n### 계획\n- 확인 항목:\n")
 

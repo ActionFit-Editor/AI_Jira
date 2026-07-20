@@ -1,0 +1,95 @@
+{
+  "contractVersion": 1,
+  "questionRoundMaximum": 3,
+  "scenarios": [
+    {
+      "name": "convention_resolves_single_approach",
+      "turns": [
+        {
+          "phase": "discovery",
+          "evidence": "repository-api-owner-guidance-selects-one-approach",
+          "expectedAction": "apply-convention-without-question"
+        },
+        {
+          "phase": "closure",
+          "expectedAction": "summarize-applied-convention"
+        }
+      ],
+      "questionRequired": false,
+      "approvalPreviewAllowed": false,
+      "closureConfirmationRequired": true
+    },
+    {
+      "name": "multiple_reasonable_approaches",
+      "turns": [
+        {
+          "phase": "discovery",
+          "evidence": "two-reasonable-approaches-no-governing-convention",
+          "expectedAction": "compare-differences-advantages-disadvantages-then-recommend"
+        },
+        {
+          "phase": "user-answer",
+          "expectedAction": "record-choice-and-rationale"
+        },
+        {
+          "phase": "rescan",
+          "expectedAction": "search-for-new-material-decisions"
+        },
+        {
+          "phase": "closure",
+          "expectedAction": "request-decision-closure-confirmation"
+        }
+      ],
+      "questionRequired": true,
+      "approvalPreviewAllowed": false,
+      "approvalPreviewAllowedAfterClosure": true
+    },
+    {
+      "name": "current_bundle_delegation",
+      "delegationScope": "current-question-bundle",
+      "turns": [
+        {
+          "phase": "user-answer",
+          "evidence": "user-selects-recommendations-for-displayed-bundle",
+          "expectedAction": "apply-current-bundle-recommendations"
+        },
+        {
+          "phase": "rescan",
+          "evidence": "new-material-decision-discovered",
+          "expectedAction": "ask-new-question"
+        }
+      ],
+      "persistsToNewTask": false
+    },
+    {
+      "name": "current_invocation_delegation",
+      "delegationScope": "current-planning-invocation",
+      "turns": [
+        {
+          "phase": "user-answer",
+          "evidence": "user-explicitly-delegates-later-recommendations",
+          "expectedAction": "apply-and-record-recommendations"
+        },
+        {
+          "phase": "new-task",
+          "expectedAction": "expire-delegation"
+        }
+      ],
+      "persistsToNewTask": false,
+      "separateApprovalBoundariesRemain": true
+    },
+    {
+      "name": "unresolved_decision_blocks_plan_write",
+      "turns": [
+        {
+          "phase": "discovery",
+          "evidence": "material-decision-unanswered",
+          "expectedAction": "show-decision-progress-only"
+        }
+      ],
+      "approvalPreviewAllowed": false,
+      "jiraWriteAllowed": false,
+      "decisionsRequiredMayBeNone": false
+    }
+  ]
+}
