@@ -8,7 +8,7 @@ Use this contract whenever a Jira workflow must ask the user to approve a new ma
 2. Keep the canonical Jira title and `## QA 확인 필요 사항` content in Korean. Keep every other managed heading, field, value, and body in English according to the managed-description contract.
 3. Derive a complete Korean approval preview from that canonical draft. Do not use a summary or omit repeated details.
 4. Keep the exact canonical draft available until the approved Jira write finishes.
-5. After approval, pass the pre-preview canonical title and description unchanged to `create_issue.py` or `update_description.py --mode replace-plan`. Never translate the Korean preview back into a Jira payload.
+5. After approval, pass the pre-preview canonical title and description unchanged through `ai_jira_write_cli.py create` or `ai_jira_write_cli.py update-description --mode replace-plan`. Never translate the Korean preview back into a Jira payload.
 
 ## Korean Presentation
 

@@ -1,6 +1,6 @@
 ---
 name: jira-help
-description: Explain the AI Jira package, its installed related skills, read-only query commands, project-local write commands, configuration, safety gates, and Unity menus. Use when the user asks for Jira help, available skills or commands, package usage, setup, or capability differences.
+description: Explain the AI Jira package, its installed related skills, package-owned read and write command locators, consuming-project configuration, safety gates, and Unity menus. Use when the user asks for Jira help, available skills or commands, package usage, setup, or capability differences.
 ---
 
 # Jira Help
@@ -15,24 +15,13 @@ Read `PACKAGE_SKILLS.md` in this installed skill directory before answering. It 
 
 Explain these sections in this order:
 
-1. **Package overview**: use the generated package ID, display name, and summary. Add that the package installs project-local Jira skills and a read-only work-item CLI, while Jira writes remain behind consuming-project tools and local safety gates.
+1. **Package overview**: use the generated package ID, display name, and summary. Add that the package installs project-local Jira skills plus read-only and write locators, while Jira writes remain behind consuming-project configuration and local safety gates.
 2. **Installed skills**: include every row from the generated inventory and preserve each skill's description, when-to-use guidance, access boundary, and exact `$name` invocation. Do not maintain a second hard-coded skill list here.
 3. **Commands**: describe the command, whether it is read-only or write-capable, and its main effect. Use the catalog below.
 4. **Configuration and safety**: mention ignored local config, environment credentials, write gates, and secret-handling rules.
 5. **Unity menus**: list the skill install, removal, scaffolding, and README entries.
 
 ## Command Catalog
-
-Initialize or diagnose project-local Jira access:
-
-```bash
-python3 .agents/skills/jira-init/scripts/ai_jira_init.py status --format json
-python3 .agents/skills/jira-init/scripts/ai_jira_init.py setup --open-folder --format json
-```
-
-- `status`: Jira read-only; classify missing config, credentials, authentication, permissions, project/status mappings, network failures, or a successful connection without displaying secret values.
-- `setup --open-folder`: local write; add clone-local Git exclusion, create a missing no-overwrite config template with restricted permissions, and reveal its input location. It does not change Jira.
-- For token creation, direct the user to `https://id.atlassian.com/manage-profile/security/api-tokens` and never ask them to paste a token into chat.
 
 Run installed read-only commands from the consuming project root:
 
@@ -48,32 +37,31 @@ python3 .agents/skills/jira-help/scripts/ai_jira_cli.py detail MCC-1234 --format
 - `list --state all`: read-only; combine todo and progress for raw inspection, not `jira-todo` candidate ranking.
 - `detail <ISSUE-KEY>`: read-only; return one issue's description and implementation context.
 
-When the consuming project provides `Tools/AI/jira/`, explain these write-capable commands without running them by default:
+Explain these package-owned write commands without running them by default:
 
 ```bash
-python3 Tools/AI/jira/create_issue.py --summary "제목" --description "설명"
-python3 Tools/AI/jira/update_description.py MCC-1234 --mode append-requirements --text "Keep the current behavior."
-python3 Tools/AI/jira/update_description.py MCC-1234 --mode prepend-qa --text "QA 확인 내용"
-python3 Tools/AI/jira/update_description.py MCC-1234 --mode replace-plan --file approved-description.md --expected-updated "2026-07-15T02:22:47.217+0000"
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --to todo
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --to progress
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
-python3 Tools/AI/jira/transition_issue.py MCC-1234 --list
-python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123"
-python3 Tools/AI/jira/finalize_session.py MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py create --summary "제목" --description "설명"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode append-requirements --text "Keep the current behavior."
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode prepend-qa --text "QA 확인 내용"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode replace-plan --file approved-description.md --expected-updated "2026-07-15T02:22:47.217+0000"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to todo
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to progress
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --list
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
-- `create_issue.py`: write; validate the managed description contract, require the current active sprint, then report success only after the assigned issue's active-sprint membership and todo status are verified.
-- `update_description.py`: write; append confirmed English requirements, prepend Korean QA notes, or replace only an explicitly approved managed plan under optimistic-concurrency and planning-lock checks.
-- `transition_issue.py --to todo|progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled. Done also requires a PR URL and a verified QA completion record.
-- `transition_issue.py --list`: read-only; list transitions currently available for the issue.
-- `finalize_session.py`: write; make a normal session terminal. `done` reuses the PR and QA completion guards, while `incomplete` verifies one Korean handoff record and returns the issue to configured todo using `allow_description_append` plus `allow_transition`.
+- `create`: write; validate the managed description contract, resolve one non-subtask type to `issuetype.id`, require the current active sprint, then report success only after the assigned issue's active-sprint membership and todo status are verified.
+- `update-description`: write; append confirmed English requirements, prepend Korean QA notes, or replace only an explicitly approved managed plan under optimistic-concurrency and planning-lock checks.
+- `transition --to todo|progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled. Done also requires a PR URL and a verified QA completion record.
+- `transition --list`: read-only; list transitions currently available for the issue.
+- `finalize`: write; make a normal session terminal. `done` reuses the PR and QA completion guards, while `incomplete` verifies one Korean handoff record and returns the issue to configured todo using `allow_description_append` plus `allow_transition`.
 - Recommend each command's `--help` for exact flags in the installed version.
 
 ## Configuration And Safety
 
 - Resolve ignored project configuration from `Tools/AI/jira/config.local.json`, an explicit `--config`, or `AI_JIRA_CONFIG` as documented by the package.
-- Prefer `$jira-init` for connection diagnostics and first-time setup. Existing config is preserved, tracked config is blocked, and setup uses the clone-local Git exclude file instead of editing tracked `.gitignore`.
 - Keep `JIRA_EMAIL` and `JIRA_API_TOKEN` in environment variables or ignored local config. Never display or request a token in shared chat.
 - State that write commands may be blocked by `dry_run` or individual `allow_*` gates. Access to a command is not authorization to run it.
 - Explain that Jira titles and QA content are Korean while other newly managed description content is English; existing issues are not migrated in bulk.

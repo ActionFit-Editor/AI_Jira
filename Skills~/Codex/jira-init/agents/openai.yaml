@@ -1,6 +1,0 @@
-interface:
-  display_name: "Jira Init"
-  short_description: "Jira 연결을 진단하고 안전한 로컬 설정을 준비합니다"
-  default_prompt: "Use $jira-init to diagnose Jira access and guide me through safe local setup."
-policy:
-  allow_implicit_invocation: false

@@ -2,22 +2,15 @@ from __future__ import annotations
 
 import sys
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
+from unittest.mock import patch
 
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-REPOSITORY_ROOT = PACKAGE_ROOT.parents[1]
-PROJECT_JIRA_DIR = REPOSITORY_ROOT / "Tools" / "AI" / "jira"
-REQUIRED_PROJECT_TOOLS = (
-    "create_issue.py",
-    "finalize_session.py",
-    "jira_client.py",
-    "transition_issue.py",
-    "update_description.py",
-)
-if not all((PROJECT_JIRA_DIR / name).is_file() for name in REQUIRED_PROJECT_TOOLS):
-    raise unittest.SkipTest("Consuming project does not provide optional Jira write compatibility tools.")
-sys.path.insert(0, str(PROJECT_JIRA_DIR))
+PACKAGE_TOOLS = PACKAGE_ROOT / "Tools~"
+sys.path.insert(0, str(PACKAGE_TOOLS))
 
 from create_issue import validate_new_description
 from finalize_session import (
@@ -26,6 +19,7 @@ from finalize_session import (
     require_finalization_gates,
     validate_handoff_date,
 )
+import jira_client
 from jira_client import JiraClient, automation
 from transition_issue import find_transition, validate_done_handoff
 from update_description import append_requirements, require_mode_gate
@@ -34,6 +28,12 @@ from jira_description import has_handoff_record, has_qa_completion_record
 
 
 ACTIVE_SPRINT_PATH = "/rest/agile/1.0/board/3/sprint?maxResults=50&state=active"
+FIRST_ISSUE_TYPE_PAGE = (
+    "/rest/api/3/issue/createmeta/MCC/issuetypes?startAt=0&maxResults=50"
+)
+SECOND_ISSUE_TYPE_PAGE = (
+    "/rest/api/3/issue/createmeta/MCC/issuetypes?startAt=2&maxResults=50"
+)
 ISSUE_STATUS_PATH = "/rest/api/3/issue/MCC-1?fields=status"
 ISSUE_VERIFY_PATH = "/rest/api/3/issue/MCC-1?fields=status%2Cassignee"
 
@@ -126,6 +126,12 @@ def successful_create_responses(*, sprint_issues: list[dict] | None = None) -> d
     sprint = {"id": 42, "name": "Sprint A", "state": "active"}
     return {
         ("GET", ACTIVE_SPRINT_PATH): {"values": [sprint]},
+        ("GET", FIRST_ISSUE_TYPE_PAGE): {
+            "startAt": 0,
+            "maxResults": 50,
+            "total": 1,
+            "issueTypes": [{"id": "10015", "name": "이슈", "subtask": False}],
+        },
         ("GET", "/rest/api/3/myself"): {"accountId": "account-1"},
         ("POST", "/rest/api/3/issue"): {"id": "10001", "key": "MCC-1"},
         ("GET", ISSUE_STATUS_PATH): {"fields": {"status": {"name": "해야 할 일"}}},
@@ -139,6 +145,15 @@ def successful_create_responses(*, sprint_issues: list[dict] | None = None) -> d
         ("POST", "/rest/api/3/search/jql"): {
             "issues": sprint_issues if sprint_issues is not None else [{"key": "MCC-1"}]
         },
+    }
+
+
+def issue_type_page(*issue_types: dict, total: int | None = None, start_at: int = 0) -> dict:
+    return {
+        "startAt": start_at,
+        "maxResults": 50,
+        "total": len(issue_types) if total is None else total,
+        "issueTypes": list(issue_types),
     }
 
 
@@ -162,8 +177,114 @@ class ProjectJiraWriteToolTests(unittest.TestCase):
 
         validate_new_description(managed_description())
 
-    def test_plan_refinement_gate_defaults_to_false(self) -> None:
-        self.assertFalse(automation({})["allow_description_plan_refinement"])
+    def test_issue_type_resolves_exact_id_and_case_insensitive_name(self) -> None:
+        responses = {
+            ("GET", FIRST_ISSUE_TYPE_PAGE): issue_type_page(
+                {"id": "10014", "name": "추가", "subtask": False},
+                {"id": "10015", "name": "이슈", "subtask": False},
+            )
+        }
+
+        self.assertEqual(
+            "10015",
+            RecordingJiraClient(jira_config(), responses).resolve_issue_type_id("이슈"),
+        )
+        self.assertEqual(
+            "10014",
+            RecordingJiraClient(jira_config(), responses).resolve_issue_type_id(10014),
+        )
+
+    def test_issue_type_resolution_reads_every_metadata_page(self) -> None:
+        client = RecordingJiraClient(
+            jira_config(),
+            {
+                ("GET", FIRST_ISSUE_TYPE_PAGE): issue_type_page(
+                    {"id": "10014", "name": "추가", "subtask": False},
+                    {"id": "10015", "name": "이슈", "subtask": False},
+                    total=3,
+                ),
+                ("GET", SECOND_ISSUE_TYPE_PAGE): issue_type_page(
+                    {"id": "10479", "name": "긴급", "subtask": False},
+                    total=3,
+                    start_at=2,
+                ),
+            },
+        )
+
+        self.assertEqual("10479", client.resolve_issue_type_id("긴급"))
+        self.assertEqual(
+            [FIRST_ISSUE_TYPE_PAGE, SECOND_ISSUE_TYPE_PAGE],
+            [call[1] for call in client.calls],
+        )
+
+    def test_issue_type_resolution_rejects_ambiguity_subtasks_and_unknown_values(self) -> None:
+        ambiguous = {
+            ("GET", FIRST_ISSUE_TYPE_PAGE): issue_type_page(
+                {"id": "1", "name": "Task", "subtask": False},
+                {"id": "2", "name": "task", "subtask": False},
+            )
+        }
+        with self.assertRaisesRegex(SystemExit, "ambiguous"):
+            RecordingJiraClient(jira_config(), ambiguous).resolve_issue_type_id("TASK")
+
+        responses = {
+            ("GET", FIRST_ISSUE_TYPE_PAGE): issue_type_page(
+                {"id": "10015", "name": "이슈", "subtask": False},
+                {"id": "10018", "name": "하위", "subtask": True},
+            )
+        }
+        with self.assertRaisesRegex(SystemExit, "top-level issues only"):
+            RecordingJiraClient(jira_config(), responses).resolve_issue_type_id("10018")
+        with self.assertRaisesRegex(SystemExit, r"Available top-level issue types: 이슈 \(10015\)"):
+            RecordingJiraClient(jira_config(), responses).resolve_issue_type_id("Task")
+
+    def test_issue_type_resolution_rejects_malformed_metadata(self) -> None:
+        malformed_pages = (
+            {},
+            {"startAt": 0, "total": "1", "issueTypes": []},
+            issue_type_page({"id": "10015", "name": "", "subtask": False}),
+            issue_type_page({"id": "10015", "name": "이슈", "subtask": "false"}),
+        )
+        for page in malformed_pages:
+            with self.subTest(page=page), self.assertRaisesRegex(SystemExit, "invalid|incomplete"):
+                RecordingJiraClient(
+                    jira_config(),
+                    {("GET", FIRST_ISSUE_TYPE_PAGE): page},
+                ).resolve_issue_type_id("이슈")
+
+    def test_all_write_gates_default_to_safe_values(self) -> None:
+        options = automation({})
+
+        self.assertTrue(options["dry_run"])
+        for gate in (
+            "allow_issue_create",
+            "allow_transition",
+            "allow_description_append",
+            "allow_description_prepend_qa",
+            "allow_description_plan_refinement",
+            "allow_description_overwrite",
+            "allow_sprint_add",
+        ):
+            with self.subTest(gate=gate):
+                self.assertFalse(options[gate])
+
+    def test_config_diagnostic_does_not_print_credentials(self) -> None:
+        config = jira_config()
+        config["_config_path"] = "Tools/AI/jira/config.local.json"
+        config["auth"] = {
+            "email": "private-user@example.com",
+            "api_token": "private-api-token",
+        }
+        output = StringIO()
+
+        with patch.object(jira_client, "load_config", return_value=config), patch.object(
+            sys, "argv", ["jira_client.py"]
+        ), redirect_stdout(output):
+            jira_client.main()
+
+        diagnostics = output.getvalue()
+        self.assertNotIn("private-user@example.com", diagnostics)
+        self.assertNotIn("private-api-token", diagnostics)
 
     def test_missing_sprint_setting_defaults_to_required_active_sprint(self) -> None:
         client = RecordingJiraClient(jira_config(), successful_create_responses())
@@ -172,6 +293,9 @@ class ProjectJiraWriteToolTests(unittest.TestCase):
 
         self.assertEqual("MCC-1", result["key"])
         self.assertEqual(("GET", ACTIVE_SPRINT_PATH), client.calls[0][:2])
+        create_body = next(call[2] for call in client.calls if call[1] == "/rest/api/3/issue")
+        self.assertEqual({"id": "10015"}, create_body["fields"]["issuetype"])
+        self.assertNotIn("name", create_body["fields"]["issuetype"])
         search_body = client.calls[-1][2]
         self.assertEqual([10001], search_body["reconcileIssues"])
         self.assertEqual('key = "MCC-1" AND sprint = 42', search_body["jql"])

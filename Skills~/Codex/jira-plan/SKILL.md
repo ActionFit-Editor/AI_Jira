@@ -62,16 +62,16 @@ Use this path only for an explicitly selected assigned unresolved todo issue who
 1. Re-read the issue and require its status to equal `configuredStatuses.todo`.
 2. Capture the todo issue's `updated` value, then discuss the missing scope or decisions while it stays in todo. Prepare the complete canonical mixed-language description above, follow `references/korean-approval-preview.md`, show its complete Korean approval view, and ask for explicit plan-update approval.
 3. After explicit approval, re-read the issue and require the same todo status and `updated` value from the captured approved todo snapshot. If they differ, regenerate and reapprove without transitioning. Only after a match may you move it to `progress`, re-read it, verify the transient planning lock, and capture the post-transition `updated` value.
-4. Write the retained draft to a temporary UTF-8 file outside the repository and call `Tools/AI/jira/update_description.py <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value>`. Remove the temporary file.
+4. Write the retained draft to a temporary UTF-8 file outside the repository and call `python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py update-description <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value>`. Remove the temporary file.
 5. Re-read the issue, verify the approved managed contract, transition it back to `todo`, and verify the final status before responding.
 
-The project tool must preserve existing Korean QA completion records and unmanaged sections. If the managed update fails after the transient lock, attempt to return the issue to `todo`, re-read it, and report both failures if rollback also fails. Never expire or steal a planning lock automatically. Waiting for approval, requested revisions, and lost canonical state must remain in todo. Only an abrupt process failure or Jira failure may exceptionally strand the issue in progress, and that failure must be reported for recovery.
+The package-owned command must preserve existing Korean QA completion records and unmanaged sections. If the managed update fails after the transient lock, attempt to return the issue to `todo`, re-read it, and report both failures if rollback also fails. Never expire or steal a planning lock automatically. Waiting for approval, requested revisions, and lost canonical state must remain in todo. Only an abrupt process failure or Jira failure may exceptionally strand the issue in progress, and that failure must be reported for recovery.
 
 ## Create After Approval
 
 1. Reuse the exact canonical title and description prepared before the approved Korean preview without silently revising or back-translating them.
-2. Use the consuming project's `Tools/AI/jira/create_issue.py` with `--summary` and a temporary UTF-8 `--description-file` outside the repository, then remove that temporary file. Do not call Jira REST directly.
-3. Let the project tool enforce assignment to the authenticated user, configured todo status, active-sprint behavior, dry-run mode, and write gates.
+2. Call `python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py create` with `--summary` and a temporary UTF-8 `--description-file` outside the repository, then remove that temporary file. Do not call Jira REST directly.
+3. Let the package-owned command enforce assignment to the authenticated user, configured todo status, active-sprint behavior, issue-type ID resolution, dry-run mode, and write gates.
 4. Report the created issue key and URL, or the exact blocker when configuration, credentials, sprint resolution, or write gates prevent creation.
 5. Leave the issue in todo. Do not create a branch, leave it in progress, implement, commit, push, or open a pull request.
 

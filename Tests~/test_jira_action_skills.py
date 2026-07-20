@@ -53,6 +53,23 @@ class JiraActionSkillTests(unittest.TestCase):
                 self.assertIn("Korean approval view", contents)
                 self.assertIn("regenerate", contents.lower())
 
+    def test_write_skills_use_the_installed_package_write_locator(self) -> None:
+        for agent, helper in (("Codex", ".agents"), ("Claude", ".claude")):
+            for name in ("jira-plan", "jira-auto-start", "jira-run"):
+                contents = self._read_skill(agent, name)
+
+                self.assertIn(
+                    f"python3 {helper}/skills/{name}/scripts/ai_jira_write_cli.py",
+                    contents,
+                )
+                for project_tool in (
+                    "Tools/AI/jira/create_issue.py",
+                    "Tools/AI/jira/update_description.py",
+                    "Tools/AI/jira/transition_issue.py",
+                    "Tools/AI/jira/finalize_session.py",
+                ):
+                    self.assertNotIn(project_tool, contents)
+
     def test_auto_start_classifies_all_todo_and_handles_planning_lock(self) -> None:
         for agent, helper in (("Codex", ".agents"), ("Claude", ".claude")):
             contents = self._read_skill(agent, "jira-auto-start")
@@ -93,7 +110,7 @@ class JiraActionSkillTests(unittest.TestCase):
             self.assertIn("Korean", contents)
             self.assertIn("English", contents)
             self.assertIn("explicit", contents.lower())
-            self.assertIn("Tools/AI/jira/create_issue.py", contents)
+            self.assertIn("ai_jira_write_cli.py create", contents)
             self.assertIn("--description-file", contents)
             self.assertIn("replace-plan", contents)
             self.assertIn("planning lock", contents.lower())
@@ -131,7 +148,8 @@ class JiraActionSkillTests(unittest.TestCase):
                 contents = self._read_skill(agent, name)
                 lower = contents.lower()
 
-                self.assertIn("finalize_session.py", contents)
+                self.assertIn("ai_jira_write_cli.py", contents)
+                self.assertIn("finalize", contents)
                 self.assertIn("--outcome done", contents)
                 self.assertIn("--outcome incomplete", contents)
                 self.assertIn("normal final response", lower)
@@ -237,14 +255,14 @@ class JiraActionSkillTests(unittest.TestCase):
         self.assertIn("context compaction", scenarios["interrupted_canonical_state"]["recoveryEvidence"])
 
     def test_codex_write_skills_disable_implicit_invocation(self) -> None:
-        for name in ("jira-init", "jira-plan", "jira-auto-start", "jira-run"):
+        for name in ("jira-plan", "jira-auto-start", "jira-run"):
             path = PACKAGE_ROOT / "Skills~" / "Codex" / name / "agents" / "openai.yaml"
             metadata = path.read_text(encoding="utf-8")
 
             self.assertIn("allow_implicit_invocation: false", metadata)
 
     def test_claude_write_skills_disable_model_invocation(self) -> None:
-        for name in ("jira-init", "jira-plan", "jira-auto-start", "jira-run"):
+        for name in ("jira-plan", "jira-auto-start", "jira-run"):
             contents = self._read_skill("Claude", name)
             self.assertIn("disable-model-invocation: true", contents)
 
