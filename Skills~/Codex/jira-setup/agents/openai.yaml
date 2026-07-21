@@ -1,0 +1,6 @@
+interface:
+  display_name: "Set Up Jira Access"
+  short_description: "Create secret-free Jira config and verify connectivity"
+  default_prompt: "Use $jira-setup to prepare ignored Jira configuration and verify access safely."
+policy:
+  allow_implicit_invocation: false

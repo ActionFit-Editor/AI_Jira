@@ -10,6 +10,12 @@
       "access": "read-only"
     },
     {
+      "name": "jira-setup",
+      "agents": ["codex", "claude"],
+      "includeShared": true,
+      "access": "write-capable"
+    },
+    {
       "name": "jira-todo",
       "agents": ["codex", "claude"],
       "includeShared": true,

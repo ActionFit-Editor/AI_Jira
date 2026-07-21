@@ -90,9 +90,29 @@ class JiraHelpSkillTests(unittest.TestCase):
         self.assertEqual("jira-help", manifest["helpSkill"])
         by_name = {skill["name"]: skill for skill in manifest["skills"]}
         self.assertEqual("read-only", by_name["jira-help"]["access"])
+        self.assertEqual("write-capable", by_name["jira-setup"]["access"])
         self.assertEqual("read-only", by_name["jira-todo"]["access"])
         self.assertEqual("write-capable", by_name["jira-run"]["access"])
         self.assertEqual({"codex", "claude"}, set(by_name["jira-help"]["agents"]))
+        self.assertEqual({"codex", "claude"}, set(by_name["jira-setup"]["agents"]))
+
+    def test_setup_skill_is_secret_free_explicit_and_read_only_against_jira(self) -> None:
+        for agent in ("Codex", "Claude"):
+            path = PACKAGE_ROOT / "Skills~" / agent / "jira-setup" / "SKILL.md"
+            contents = path.read_text(encoding="utf-8")
+
+            self.assertIn("JIRA_EMAIL", contents)
+            self.assertIn("JIRA_API_TOKEN", contents)
+            self.assertIn("automation.dry_run: true", contents)
+            self.assertIn("keep every `allow_*` write gate false", contents)
+            self.assertIn("Never request a token in chat", contents)
+            self.assertIn("list --state todo --format json", contents)
+            self.assertNotIn("TODO", contents)
+
+        codex_metadata = (
+            PACKAGE_ROOT / "Skills~" / "Codex" / "jira-setup" / "agents" / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("allow_implicit_invocation: false", codex_metadata)
 
     @staticmethod
     def _read_skill(agent: str) -> str:

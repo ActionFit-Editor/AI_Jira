@@ -13,7 +13,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.28"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.29"
   }
 }
 ```
@@ -28,8 +28,8 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 
 AI Jira는 `Skills~/manifest.json`을 통해 `skillPrefix: jira`, 필수 `helpSkill: jira-help`와 명시적인 read-only/write-capable access를 가진 schema v2 package-owned source를 등록합니다. Unity가 AI Jira와 Custom Package Manager 의존성을 해석하면 공통 installer가 사용하는 프로젝트에 동기화합니다.
 
-- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-todo`, `.agents/skills/jira-plan`, `.agents/skills/jira-auto-start`, `.agents/skills/jira-run`
-- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-todo`, `.claude/skills/jira-plan`, `.claude/skills/jira-auto-start`, `.claude/skills/jira-run`
+- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-setup`, `.agents/skills/jira-todo`, `.agents/skills/jira-plan`, `.agents/skills/jira-auto-start`, `.agents/skills/jira-run`
+- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-setup`, `.claude/skills/jira-todo`, `.claude/skills/jira-plan`, `.claude/skills/jira-auto-start`, `.claude/skills/jira-run`
 
 Installer는 AI Jira package metadata, manifest와 agent별 `SKILL.md` description으로 설치된 각 `jira-help` 안에 `PACKAGE_SKILLS.md`를 생성합니다. `jira-help`는 이 inventory를 먼저 읽으므로 두 번째 hard-coded skill 목록 없이 package identity, 모든 관련 skill, `$name` 호출, 사용 시점 description과 access 경계가 동기화됩니다.
 
@@ -189,6 +189,8 @@ https://id.atlassian.com/manage-profile/security/api-tokens
 Token 생성 직후 복사해 password manager에 보관합니다. Atlassian은 생성 후 token을 다시 보여주지 않습니다. Token을 commit하거나 공유 chat에 붙여 넣거나 추적되는 프로젝트 파일에 저장하지 않습니다.
 
 Package-owned script는 사용하는 프로젝트에서 Git 제외된 `Tools/AI/jira/config.local.json`을 읽을 수 있지만 개인 자격 증명은 환경 변수를 권장합니다.
+
+명시적인 `$jira-setup`은 기존 config를 덮어쓰지 않습니다. config가 없을 때만 Jira URL, project/status/board와 branch/worktree 값을 포함한 비밀값 없는 전체 계획을 보여주고 승인받은 뒤 Git에서 제외된 파일을 생성합니다. 인증은 `JIRA_EMAIL`, `JIRA_API_TOKEN` 환경 변수 이름으로만 참조하고 `dry_run: true`와 모든 `allow_*: false`를 유지한 상태에서 read-only 연결만 검증합니다.
 
 ## 이슈 생성 기본값
 

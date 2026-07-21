@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.28`
+- Current package version at generation time: `1.0.29`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -77,8 +77,9 @@ Read this file when:
 - Do not perform unrestricted full-description overwrites. Append requirements, prepend QA, or replace only the approved managed plan when the matching local gate allows it. Managed replacement requires the progress planning lock and matching Jira `updated` value and must preserve prior QA completion records and unmanaged sections.
 - Do not add AI-created labels or move issues to a QA status. QA-board movement remains a manual user action after build verification.
 - Keep Jira REST calls behind the package/client boundary so projects can replace auth or endpoint details without changing workflow rules.
-- Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and use schema v2 `Skills~/manifest.json` with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit `access`. `Skills~/Shared/references/korean-approval-preview.md` owns the dual-representation approval contract for both agents. Custom Package Manager copies registered sources to project-local `.agents/skills` and `.claude/skills`, overlays shared files from `Skills~/Shared`, and generates the managed `PACKAGE_SKILLS.md` only inside installed `jira-help` targets.
-- `jira-help` and `jira-todo` must remain read-only. `jira-plan`, `jira-auto-start`, and `jira-run` are write-capable and must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
+- Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and use schema v2 `Skills~/manifest.json` with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit `access`. `jira-setup` owns secret-free ignored local-config initialization and read-only connection verification. `Skills~/Shared/references/korean-approval-preview.md` owns the dual-representation approval contract for both agents. Custom Package Manager copies registered sources to project-local `.agents/skills` and `.claude/skills`, overlays shared files from `Skills~/Shared`, and generates the managed `PACKAGE_SKILLS.md` only inside installed `jira-help` targets.
+- `jira-help` and `jira-todo` must remain read-only. `jira-setup`, `jira-plan`, `jira-auto-start`, and `jira-run` are write-capable and must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
+- `jira-setup` may create only a missing, regular, Git-ignored project config after showing an exact secret-free plan and obtaining approval. It must use environment-variable references for credentials, keep `dry_run` and every `allow_*` gate disabled, refuse tracked/unignored/existing targets, and verify with read-only package commands. It never reads or prints token values, modifies shell profiles, enables Jira writes, or overwrites/deletes local config.
 - AI Jira depends on `com.actionfit.custompackagemanager` `1.1.106` so schema v2 installation and generated inventory have one shared owner. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
 - Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. New managed hashes belong in `UserSettings/ActionFitPackageManager/skill-install-state.json`; the preserved `UserSettings/AIJira/skill-install-state.json` is migration input only.
 - Package refresh may update only a target whose current directory hash matches the recorded installed hash. Explicit removal may delete only the same unchanged targets and must preserve modified or linked directories.
