@@ -1,6 +1,6 @@
 interface:
   display_name: "Jira Plan"
-  short_description: "구현 결정을 함께 확정하고 Jira 계획을 승인합니다"
-  default_prompt: "Use $jira-plan to collaboratively resolve material decisions, close decision discovery, review the complete Korean approval view, and create or refine the issue after approval."
+  short_description: "제목 전용 접수 또는 Jira 계획을 승인합니다"
+  default_prompt: "Use $jira-plan to create an explicitly approved title-only needs-plan intake, or collaboratively resolve material decisions and create or refine a planned issue after approval."
 policy:
   allow_implicit_invocation: false

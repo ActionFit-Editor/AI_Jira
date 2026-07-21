@@ -1,11 +1,22 @@
 ---
 name: jira-plan
-description: Collaboratively resolve material implementation decisions, show the complete approved plan in Korean while retaining the exact mixed-language Jira storage draft, then create a new todo issue or safely refine an existing todo issue without implementing it.
+description: Create an explicitly approved title-only needs-plan intake, or collaboratively resolve material implementation decisions and create or safely refine one planned Jira todo without implementing it.
 ---
 
 # Jira Plan
 
-Turn a new idea into one approved Jira todo issue, or refine one explicitly selected todo issue under a transient approved write lock. Do not implement the planned work in this skill or end a normal invocation with the issue in progress.
+Capture one explicitly requested title-only needs-plan intake, turn a new idea into one approved planned Jira todo issue, or refine one explicitly selected todo issue under a transient approved write lock. Do not implement the work in this skill or end a normal invocation with the issue in progress.
+
+## Title-Only Needs-Plan Intake
+
+Use this path only when the user explicitly asks to record a title-only needs-plan issue. It is an intake operation for later planning, not a shortcut around unresolved decisions in the normal planning path.
+
+1. Read the repository guidance and query todo and progress separately as described below to detect likely duplicates or active overlap. If a likely duplicate exists, present it and obtain the user's decision before creating another issue.
+2. Prepare one exact Korean Jira title. Do not prepare a managed description, decision questionnaire, full-plan approval view, branch, worktree, or implementation plan.
+3. Show the exact title and obtain explicit approval to create that title-only needs-plan issue. A user request that already names the exact title and explicitly directs creation satisfies this approval; an idea, discussion, or inferred follow-up does not.
+4. After approval, call `python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py create --summary "<Korean title>" --title-only-needs-plan`. Do not pass `--description` or `--description-file`, and do not call Jira REST directly.
+5. Let the package-owned command omit the Jira description and enforce current-user assignment, configured todo status, active-sprint behavior, issue-type ID resolution, dry-run mode, and write gates. Re-read the created issue when available and require `descriptionContract.state=needs-plan` before reporting success.
+6. Report the issue key and URL or the exact blocker. Leave the issue in todo and do not refine, transition, implement, commit, push, or open a pull request in this invocation.
 
 ## Research And Discuss
 

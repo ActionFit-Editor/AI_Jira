@@ -1,12 +1,14 @@
 ---
 name: jira-plan
-description: Collaboratively resolve material implementation decisions, show the complete approved plan in Korean while retaining the exact mixed-language Jira storage draft, then create a new todo issue or safely refine an existing todo issue without implementing it.
+description: Create an explicitly approved title-only needs-plan intake, or collaboratively resolve material implementation decisions and create or safely refine one planned Jira todo without implementing it.
 disable-model-invocation: true
 ---
 
 # Jira Plan
 
-Turn one new idea into an approved Jira todo issue, or refine one explicitly selected needs-plan issue under a transient planning lock that is used only for the approved write. Never implement or end a normal invocation in progress.
+Capture one explicitly requested title-only needs-plan intake, turn one new idea into an approved planned Jira todo issue, or refine one explicitly selected needs-plan issue under a transient planning lock that is used only for the approved write. Never implement or end a normal invocation in progress.
+
+For title-only needs-plan intake, use this path only when the user explicitly requests it; never use it to bypass unresolved decisions in normal planning. Read repository guidance, query todo and progress separately, and obtain the user's decision before creating a likely duplicate. Prepare one exact Korean title without a managed description, decision questionnaire, full-plan approval view, branch, worktree, or implementation plan. Show the exact title and obtain explicit creation approval; a request that already names the exact title and directs creation satisfies approval, but an inferred follow-up does not. Then call only `python3 .claude/skills/jira-plan/scripts/ai_jira_write_cli.py create --summary "<Korean title>" --title-only-needs-plan`, never pass a description option, and never call Jira REST directly. Let the package command omit the description and enforce assignment, todo, active sprint, issue-type ID resolution, dry-run, and write gates. Re-read when available and require `descriptionContract.state=needs-plan`. Report the key and URL, leave the issue todo, and do not refine, transition, implement, commit, push, or open a PR.
 
 1. Read `CLAUDE.md`, `AGENTS.md`, and linked repository guidance. Inspect relevant source and documentation without editing repository files.
 2. When Jira is configured, query todo and progress separately through `.claude/skills/jira-plan/scripts/ai_jira_cli.py` and read details only to detect duplicates, dependencies, or overlap.

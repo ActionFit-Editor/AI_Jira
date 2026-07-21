@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sys
 import unittest
+from argparse import Namespace
 from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
@@ -12,7 +13,7 @@ PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 PACKAGE_TOOLS = PACKAGE_ROOT / "Tools~"
 sys.path.insert(0, str(PACKAGE_TOOLS))
 
-from create_issue import validate_new_description
+from create_issue import resolve_description, validate_new_description
 from finalize_session import (
     finalize_done,
     finalize_incomplete,
@@ -177,6 +178,34 @@ class ProjectJiraWriteToolTests(unittest.TestCase):
 
         validate_new_description(managed_description())
 
+    def test_title_only_needs_plan_omits_description(self) -> None:
+        args = Namespace(
+            title_only_needs_plan=True,
+            description=None,
+            description_file=None,
+        )
+
+        self.assertIsNone(resolve_description(args))
+
+    def test_title_only_needs_plan_rejects_description_inputs(self) -> None:
+        for description, description_file in (
+            ("설명", None),
+            (None, "plan.md"),
+            ("", None),
+            (None, ""),
+        ):
+            with self.subTest(
+                description=description,
+                description_file=description_file,
+            ), self.assertRaisesRegex(SystemExit, "cannot be combined"):
+                resolve_description(
+                    Namespace(
+                        title_only_needs_plan=True,
+                        description=description,
+                        description_file=description_file,
+                    )
+                )
+
     def test_issue_type_resolves_exact_id_and_case_insensitive_name(self) -> None:
         responses = {
             ("GET", FIRST_ISSUE_TYPE_PAGE): issue_type_page(
@@ -299,6 +328,15 @@ class ProjectJiraWriteToolTests(unittest.TestCase):
         search_body = client.calls[-1][2]
         self.assertEqual([10001], search_body["reconcileIssues"])
         self.assertEqual('key = "MCC-1" AND sprint = 42', search_body["jql"])
+
+    def test_title_only_create_payload_has_no_description_field(self) -> None:
+        client = RecordingJiraClient(jira_config(), successful_create_responses())
+
+        result = client.create_issue("계획이 필요한 작업", None)
+
+        self.assertEqual("MCC-1", result["key"])
+        create_body = next(call[2] for call in client.calls if call[1] == "/rest/api/3/issue")
+        self.assertNotIn("description", create_body["fields"])
 
     def test_explicit_false_sprint_setting_blocks_before_any_request(self) -> None:
         client = RecordingJiraClient(

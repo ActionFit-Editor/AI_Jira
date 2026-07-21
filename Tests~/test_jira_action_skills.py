@@ -205,6 +205,29 @@ class JiraActionSkillTests(unittest.TestCase):
             self.assertIn("Leave the issue in todo", contents)
             self.assertIn("do not implement", contents.lower())
 
+    def test_plan_supports_explicit_title_only_needs_plan_intake(self) -> None:
+        for agent in ("Codex", "Claude"):
+            contents = self._read_skill(agent, "jira-plan")
+            lower = contents.lower()
+
+            self.assertIn("title-only needs-plan", contents)
+            self.assertIn("--title-only-needs-plan", contents)
+            self.assertIn("exact Korean", contents)
+            self.assertIn("title", lower)
+            self.assertIn("descriptionContract.state=needs-plan", contents)
+            self.assertIn("description", lower)
+            self.assertIn("todo", lower)
+            self.assertTrue("not a shortcut" in lower or "bypass" in lower)
+
+    def test_package_docs_define_title_only_needs_plan_as_an_explicit_exception(self) -> None:
+        for path in (PACKAGE_ROOT / "README.md", PACKAGE_ROOT / "AI_GUIDE.md"):
+            contents = path.read_text(encoding="utf-8")
+
+            self.assertIn("--title-only-needs-plan", contents)
+            self.assertIn("descriptionContract.state=needs-plan", contents)
+            self.assertIn("todo", contents)
+            self.assertIn("active sprint" if path.name == "README.md" else "active-sprint", contents)
+
     def test_planning_waits_in_todo_and_uses_only_a_transient_approved_lock(self) -> None:
         for agent in ("Codex", "Claude"):
             for name in ("jira-plan", "jira-auto-start", "jira-run"):

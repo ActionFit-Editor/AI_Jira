@@ -41,6 +41,7 @@ Explain these package-owned write commands without running them by default:
 
 ```bash
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py create --summary "제목" --description "설명"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py create --summary "나중에 계획할 작업" --title-only-needs-plan
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode append-requirements --text "Keep the current behavior."
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode prepend-qa --text "QA 확인 내용"
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode replace-plan --file approved-description.md --expected-updated "2026-07-15T02:22:47.217+0000"
@@ -52,7 +53,7 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
-- `create`: write; validate the managed description contract, resolve one non-subtask type to `issuetype.id`, require the current active sprint, then report success only after the assigned issue's active-sprint membership and todo status are verified.
+- `create`: write; normal creation validates the managed description contract. The explicit `--title-only-needs-plan` mode rejects description arguments and omits the Jira description so the todo is classified as `needs-plan`. Both modes resolve one non-subtask type to `issuetype.id`, require the current active sprint, and report success only after assignment, active-sprint membership, and todo status are verified.
 - `update-description`: write; append confirmed English requirements, prepend Korean QA notes, or replace only an explicitly approved managed plan under optimistic-concurrency and planning-lock checks.
 - `transition --to todo|progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled. Done also requires a PR URL and a verified QA completion record.
 - `transition --list`: read-only; list transitions currently available for the issue.
@@ -64,6 +65,7 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 
 - Resolve ignored project configuration from `Tools/AI/jira/config.local.json`, an explicit `--config`, or `AI_JIRA_CONFIG` as documented by the package.
 - Keep `JIRA_EMAIL` and `JIRA_API_TOKEN` in environment variables or ignored local config. Never display or request a token in shared chat.
 - State that write commands may be blocked by `dry_run` or individual `allow_*` gates. Access to a command is not authorization to run it.
+- Explain that title-only needs-plan intake requires an explicit exact-title creation request or approval and is not a fallback for bypassing normal plan decisions or approval.
 - Explain that Jira titles and QA content are Korean while other newly managed description content is English; existing issues are not migrated in bulk.
 - Explain that `jira-plan`, `jira-auto-start`, and `jira-run` apply the shared planning-decision contract: conventions resolve one clear approach without an unnecessary question, while multiple reasonable approaches trigger one-to-three-question rounds and re-scans. Every alternative explains its difference, advantages, and disadvantages before the recommended choice and its rationale. No approval-ready plan is produced before explicit decision closure. Current-bundle recommendation delegation does not persist; broader delegation expires with the current planning invocation. Sensitive, destructive, publish, deploy, and production boundaries always keep separate approval.
 - Explain that `jira-plan`, `jira-auto-start`, and `jira-run` show complete planning approval views in Korean while retaining the exact mixed-language storage draft prepared before the preview. Approval writes that canonical draft unchanged, never a back-translation of the Korean view. A revision or lost canonical state requires a regenerated complete Korean view and new approval.

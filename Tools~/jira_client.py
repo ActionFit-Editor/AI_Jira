@@ -307,7 +307,12 @@ class JiraClient:
 
         return list(issue_types_by_id.values())
 
-    def create_issue(self, summary: str, description: str, issue_type: str | None = None) -> dict[str, Any]:
+    def create_issue(
+        self,
+        summary: str,
+        description: str | None,
+        issue_type: str | None = None,
+    ) -> dict[str, Any]:
         if not self.options.get("allow_issue_create"):
             raise SystemExit("Issue creation requires allow_issue_create=true.")
         project_key = self.config.get("project_key")
@@ -324,11 +329,13 @@ class JiraClient:
             "fields": {
                 "project": {"key": project_key},
                 "summary": summary,
-                "description": to_adf(description),
                 "issuetype": {"id": issue_type_id},
                 "labels": labels,
             }
         }
+
+        if description is not None:
+            body["fields"]["description"] = to_adf(description)
 
         if assign_to_current_user:
             if self.dry_run:
