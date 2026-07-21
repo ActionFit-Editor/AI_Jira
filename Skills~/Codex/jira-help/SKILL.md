@@ -29,12 +29,14 @@ Run installed read-only commands from the consuming project root:
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state todo --format json
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state progress --format json
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state all --format json
+python3 .agents/skills/jira-help/scripts/ai_jira_cli.py overlap --format json
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py detail MCC-1234 --format json
 ```
 
 - `list --state todo`: read-only; list assigned unresolved new-work candidates.
 - `list --state progress`: read-only; list assigned unresolved work already in development.
 - `list --state all`: read-only; combine todo and progress for raw inspection, not `jira-todo` candidate ranking.
+- `overlap`: read-only; list every assignee's issues in exactly configured todo, progress, and done across every enhanced-search page for explicit project-wide duplicate-work analysis. It never feeds task recommendation or automatic pickup.
 - `detail <ISSUE-KEY>`: read-only; return one issue's description and implementation context.
 
 Explain these package-owned write commands without running them by default:

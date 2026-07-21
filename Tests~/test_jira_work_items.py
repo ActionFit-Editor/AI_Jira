@@ -13,8 +13,10 @@ sys.path.insert(0, str(TOOLS_DIR))
 
 from jira_work_items import (
     build_jql,
+    build_overlap_jql,
     load_config,
     normalize_issue_links,
+    query_overlap_work_items,
     query_work_item,
     query_work_items,
     write_json,
@@ -106,6 +108,22 @@ class FakeJiraReadApi:
         }
 
 
+class FakePagedJiraReadApi:
+    def __init__(self, responses: dict[str | None, dict]) -> None:
+        self.responses = responses
+        self.calls = []
+
+    def search_issues(
+        self,
+        jql: str,
+        max_results: int,
+        next_page_token: str | None = None,
+        fields: list[str] | None = None,
+    ) -> dict:
+        self.calls.append((jql, max_results, next_page_token, fields))
+        return self.responses[next_page_token]
+
+
 class JiraWorkItemsTests(unittest.TestCase):
     def setUp(self) -> None:
         self.config = {
@@ -127,6 +145,90 @@ class JiraWorkItemsTests(unittest.TestCase):
         self.assertIn("resolution = Unresolved", jql)
         self.assertIn('status IN ("해야 할 일", "개발 진행 중")', jql)
         self.assertTrue(jql.endswith("ORDER BY updated DESC"))
+
+    def test_build_overlap_jql_uses_project_and_all_configured_lifecycle_states(self) -> None:
+        jql, statuses = build_overlap_jql(self.config)
+
+        self.assertEqual(["해야 할 일", "개발 진행 중", "개발 완료"], statuses)
+        self.assertIn('project = "MCC"', jql)
+        self.assertIn('status IN ("해야 할 일", "개발 진행 중", "개발 완료")', jql)
+        self.assertNotIn("assignee", jql)
+        self.assertNotIn("resolution", jql)
+        self.assertTrue(jql.endswith("ORDER BY updated DESC"))
+
+    def test_build_overlap_jql_requires_project_and_every_lifecycle_mapping(self) -> None:
+        missing_project = {**self.config, "project_key": ""}
+        with self.assertRaisesRegex(SystemExit, "Missing Jira project_key"):
+            build_overlap_jql(missing_project)
+
+        missing_done = {**self.config, "statuses": {**self.config["statuses"], "done": ""}}
+        with self.assertRaisesRegex(SystemExit, "Missing Jira status mapping.*done"):
+            build_overlap_jql(missing_done)
+
+    def test_overlap_query_reads_every_page_and_reports_completion(self) -> None:
+        api = FakePagedJiraReadApi(
+            {
+                None: {
+                    "issues": [self._overlap_issue("MCC-1", "해야 할 일", "개발자 A")],
+                    "isLast": False,
+                    "nextPageToken": "page-2",
+                },
+                "page-2": {
+                    "issues": [self._overlap_issue("MCC-2", "개발 완료", "개발자 B")],
+                    "isLast": True,
+                },
+            }
+        )
+
+        result = query_overlap_work_items(self.config, page_size=25, api=api)
+
+        self.assertTrue(result["complete"])
+        self.assertEqual("project", result["scope"])
+        self.assertEqual(["todo", "progress", "done"], result["states"])
+        self.assertEqual(["해야 할 일", "개발 진행 중", "개발 완료"], result["statuses"])
+        self.assertEqual(2, result["pageCount"])
+        self.assertEqual(2, result["returnedCount"])
+        self.assertEqual([None, "page-2"], [call[2] for call in api.calls])
+        self.assertEqual(["summary", "status", "updated", "assignee"], api.calls[0][3])
+        self.assertEqual("개발자 B", result["items"][1]["assignee"])
+
+    def test_overlap_query_rejects_repeated_page_token(self) -> None:
+        api = FakePagedJiraReadApi(
+            {
+                None: {"issues": [], "isLast": False, "nextPageToken": "repeat"},
+                "repeat": {"issues": [], "isLast": False, "nextPageToken": "repeat"},
+            }
+        )
+
+        with self.assertRaisesRegex(SystemExit, "repeated a nextPageToken"):
+            query_overlap_work_items(self.config, api=api)
+
+    def test_overlap_query_rejects_missing_terminal_evidence(self) -> None:
+        api = FakePagedJiraReadApi({None: {"issues": []}})
+
+        with self.assertRaisesRegex(SystemExit, "without explicit terminal evidence"):
+            query_overlap_work_items(self.config, api=api)
+
+    def test_overlap_query_rejects_terminal_page_with_token(self) -> None:
+        api = FakePagedJiraReadApi(
+            {None: {"issues": [], "isLast": True, "nextPageToken": "unexpected"}}
+        )
+
+        with self.assertRaisesRegex(SystemExit, "terminal page with a nextPageToken"):
+            query_overlap_work_items(self.config, api=api)
+
+    def test_overlap_query_rejects_issue_outside_configured_states(self) -> None:
+        api = FakePagedJiraReadApi(
+            {
+                None: {
+                    "issues": [self._overlap_issue("MCC-3", "QA 진행 중", "개발자 C")],
+                    "isLast": True,
+                }
+            }
+        )
+
+        with self.assertRaisesRegex(SystemExit, "outside configured lifecycle statuses"):
+            query_overlap_work_items(self.config, api=api)
 
     def test_query_returns_structured_items(self) -> None:
         api = FakeJiraReadApi()
@@ -227,6 +329,18 @@ class JiraWorkItemsTests(unittest.TestCase):
 
         self.assertIn("한글 설명", output.getvalue())
         self.assertNotIn("\\u", output.getvalue())
+
+    @staticmethod
+    def _overlap_issue(key: str, status: str, assignee: str) -> dict:
+        return {
+            "key": key,
+            "fields": {
+                "summary": f"{key} 요약",
+                "status": {"name": status},
+                "assignee": {"displayName": assignee},
+                "updated": "2026-07-21T00:00:00.000+0000",
+            },
+        }
 
 
 if __name__ == "__main__":

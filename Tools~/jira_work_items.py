@@ -22,6 +22,7 @@ STATE_KEYS = {
     "progress": ("progress",),
     "all": ("todo", "progress"),
 }
+OVERLAP_STATE_KEYS = ("todo", "progress", "done")
 
 
 def configure_output() -> None:
@@ -85,6 +86,26 @@ def build_jql(config: dict[str, Any], state: str) -> tuple[str, list[str]]:
     return " AND ".join(clauses) + " ORDER BY updated DESC", statuses
 
 
+def build_overlap_jql(config: dict[str, Any]) -> tuple[str, list[str]]:
+    """Build the project-wide Jira overlap query without task-pickup filters."""
+    project = config.get("project_key")
+    if not project:
+        raise SystemExit("Missing Jira project_key for project-wide overlap discovery.")
+
+    mappings = config.get("statuses", {})
+    missing = [key for key in OVERLAP_STATE_KEYS if not mappings.get(key)]
+    if missing:
+        raise SystemExit(f"Missing Jira status mapping(s): {', '.join(missing)}")
+
+    statuses = [str(mappings[key]) for key in OVERLAP_STATE_KEYS]
+    joined = ", ".join(_jql_string(status) for status in statuses)
+    jql = (
+        f"project = {_jql_string(project)} "
+        f"AND status IN ({joined}) ORDER BY updated DESC"
+    )
+    return jql, statuses
+
+
 def _resolve_auth(config: dict[str, Any]) -> tuple[str, str]:
     auth = config.get("auth", {})
     email = auth.get("email") or os.getenv(auth.get("email_env", "JIRA_EMAIL"), "")
@@ -103,17 +124,23 @@ class JiraReadApi:
         if not self.base_url or "your-domain" in self.base_url:
             raise SystemExit("Set jira_base_url in the ignored Jira config.")
 
-    def search_issues(self, jql: str, max_results: int) -> dict[str, Any]:
+    def search_issues(
+        self,
+        jql: str,
+        max_results: int,
+        next_page_token: str | None = None,
+        fields: list[str] | None = None,
+    ) -> dict[str, Any]:
         email, token = _resolve_auth(self.config)
         encoded_auth = base64.b64encode(f"{email}:{token}".encode("utf-8")).decode("ascii")
-        body = json.dumps(
-            {
-                "jql": jql,
-                "maxResults": max_results,
-                "fields": ["summary", "status", "updated"],
-            },
-            ensure_ascii=False,
-        ).encode("utf-8")
+        payload: dict[str, Any] = {
+            "jql": jql,
+            "maxResults": max_results,
+            "fields": fields or ["summary", "status", "updated"],
+        }
+        if next_page_token:
+            payload["nextPageToken"] = next_page_token
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
         request = Request(
             self.base_url + "/rest/api/3/search/jql",
             data=body,
@@ -296,6 +323,89 @@ def query_work_items(
     if response.get("nextPageToken"):
         result["nextPageToken"] = response["nextPageToken"]
     return result
+
+
+def query_overlap_work_items(
+    config: dict[str, Any],
+    page_size: int = 100,
+    api: JiraReadApi | None = None,
+) -> dict[str, Any]:
+    """Return every configured lifecycle issue in the project for overlap inspection."""
+    if not 1 <= page_size <= 100:
+        raise ValueError("page_size must be between 1 and 100")
+
+    jql, statuses = build_overlap_jql(config)
+    api = api or JiraReadApi(config)
+    base_url = str(config.get("jira_base_url", "")).rstrip("/")
+    items = []
+    issue_keys: set[str] = set()
+    page_tokens: set[str] = set()
+    next_page_token: str | None = None
+    page_count = 0
+
+    while True:
+        response = api.search_issues(
+            jql,
+            page_size,
+            next_page_token=next_page_token,
+            fields=["summary", "status", "updated", "assignee"],
+        )
+        if not isinstance(response, dict) or not isinstance(response.get("issues"), list):
+            raise SystemExit("Jira overlap search returned a malformed issues payload.")
+
+        page_count += 1
+        for issue in response["issues"]:
+            fields = issue.get("fields") or {}
+            status = fields.get("status") or {}
+            key = str(issue.get("key", ""))
+            status_name = str(status.get("name", ""))
+            if not key:
+                raise SystemExit("Jira overlap search returned an issue without a key.")
+            if status_name not in statuses:
+                raise SystemExit(
+                    f"Jira overlap search returned {key} outside configured lifecycle statuses."
+                )
+            if key in issue_keys:
+                raise SystemExit(f"Jira overlap pagination returned duplicate issue key: {key}")
+            issue_keys.add(key)
+            items.append(
+                {
+                    "key": key,
+                    "summary": str(fields.get("summary", "")),
+                    "status": status_name,
+                    "assignee": str((fields.get("assignee") or {}).get("displayName", "")),
+                    "updated": str(fields.get("updated", "")),
+                    "url": f"{base_url}/browse/{key}" if base_url else "",
+                }
+            )
+
+        is_last = response.get("isLast")
+        returned_token = response.get("nextPageToken")
+        if is_last is True:
+            if returned_token:
+                raise SystemExit(
+                    "Jira overlap pagination returned a terminal page with a nextPageToken."
+                )
+            break
+        if is_last is not False or not isinstance(returned_token, str) or not returned_token:
+            raise SystemExit("Jira overlap pagination ended without explicit terminal evidence.")
+        if returned_token in page_tokens:
+            raise SystemExit("Jira overlap pagination repeated a nextPageToken.")
+        page_tokens.add(returned_token)
+        next_page_token = returned_token
+
+    return {
+        "scope": "project",
+        "states": list(OVERLAP_STATE_KEYS),
+        "statuses": statuses,
+        "project": config.get("project_key"),
+        "jql": jql,
+        "returnedCount": len(items),
+        "pageSize": page_size,
+        "pageCount": page_count,
+        "complete": True,
+        "items": items,
+    }
 
 
 def write_text(result: dict[str, Any], stream: TextIO | None = None) -> None:

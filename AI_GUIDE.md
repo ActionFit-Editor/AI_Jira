@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.27`
+- Current package version at generation time: `1.0.28`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -47,9 +47,10 @@ Read this file when:
 - The remaining automatic-pickup gate requires `descriptionContract.state=ready`, a bounded issue, and no unresolved external input, separate sensitive/destructive approval, publishing, deployment, production operation, or overlap with active work. Explicit invocation counts as requirement confirmation only for one startable issue. A needs-plan issue still requires explicit approval of its complete refined description and whether to stop after planning or continue implementation.
 - An open PR, dirty worktree, Unity process, or equivalent current-work evidence makes a progress issue active. Only when active evidence is absent does a matching lease make it reserved. With neither active nor reserved evidence, only merged/closed PRs or no active work makes it stranded-review. None of these classifications make progress eligible for new-work recommendation.
 - Keep `--state all` available for general read-only API callers, but do not use it as the `jira-todo` candidate source.
+- Use `Tools~/list_overlap_work_items.py` only for explicit project-wide duplicate-work analysis such as AI Refactor preflight. It requires `project_key` plus all three configured `todo`, `progress`, and `done` mappings, includes every assignee, excludes statuses outside those mappings, follows enhanced-search pagination to an explicit terminal page, and reports `complete=true` only then. It never feeds task recommendation or automatic pickup.
 - `jira-help` must read its generated `PACKAGE_SKILLS.md` first and use it as the authoritative package identity and complete related-skill inventory. It then explains each generated `$name` invocation, frontmatter description/when-to-use guidance, read-only/write-capable boundary, package-owned list/detail/write locators, compatibility commands, configuration, write gates, and Custom Package Manager menus without executing operations by default.
 - Use `Tools~/get_work_item.py <ISSUE-KEY>` for read-only issue details needed to judge implementation scope.
-- Work-list queries must remain read-only and include the configured project when present, `assignee = currentUser()`, `resolution = Unresolved`, and descending update order.
+- Normal work-list queries must remain read-only and include the configured project when present, `assignee = currentUser()`, `resolution = Unresolved`, and descending update order. The dedicated overlap query is the only project-wide exception: it omits assignee and resolution filters, uses exactly configured `todo`, `progress`, and `done`, and still remains read-only.
 - Support both text and structured JSON output. JSON must use UTF-8 with unescaped Korean text and include issue key, title, status, updated time, and browser URL. Issue-detail JSON also exposes `configuredStatuses`, normalized `issueLinks`, and a deterministic `descriptionContract` with managed-section completeness, Auto Start fields, prerequisite keys, unresolved-decision evidence, and `ready`/`needs-plan`/`blocked` state.
 - Resolve the ignored config from an explicit `--config`, `AI_JIRA_CONFIG`, or the consuming project's `Tools/AI/jira/config.local.json`, in that order. Read config as UTF-8 with optional BOM and never place credentials inside the package.
 - Do not ask the user to paste Jira API tokens into shared chat. If setup help is needed, guide them through environment variables or ignored local config only.

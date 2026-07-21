@@ -22,10 +22,12 @@ Read-only installed commands:
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state todo --format json
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state progress --format json
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state all --format json
+python3 .claude/skills/jira-help/scripts/ai_jira_cli.py overlap --format json
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py detail MCC-1234 --format json
 ```
 
 - `todo` lists new-work candidates, `progress` lists already-active work, `all` combines both for raw inspection, and `detail` returns one issue's implementation context.
+- `overlap` is read-only and lists every assignee's issues in exactly configured todo, progress, and done across every enhanced-search page for explicit project-wide duplicate-work analysis. It never feeds task recommendation or automatic pickup.
 - Never use `all` as the `jira-todo` candidate source.
 
 Package-owned write commands:

@@ -32,18 +32,23 @@ def find_tools(project_root: Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run an AI Jira read-only package command.")
-    parser.add_argument("command", choices=("list", "detail"))
+    parser.add_argument("command", choices=("list", "detail", "overlap"))
     parser.add_argument("issue_key", nargs="?")
     args, remainder = parser.parse_known_args()
 
     if args.command == "detail" and not args.issue_key:
         parser.error("detail requires an issue key")
-    if args.command == "list" and args.issue_key:
-        parser.error("list does not accept an issue key")
+    if args.command in {"list", "overlap"} and args.issue_key:
+        parser.error(f"{args.command} does not accept an issue key")
 
     root = find_project_root(Path.cwd().resolve())
     tools = find_tools(root)
-    script = tools / ("get_work_item.py" if args.command == "detail" else "list_work_items.py")
+    scripts = {
+        "list": "list_work_items.py",
+        "detail": "get_work_item.py",
+        "overlap": "list_overlap_work_items.py",
+    }
+    script = tools / scripts[args.command]
     command = [sys.executable, str(script)]
     if args.issue_key:
         command.append(args.issue_key)

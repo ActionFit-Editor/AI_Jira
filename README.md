@@ -13,7 +13,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.27"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.28"
   }
 }
 ```
@@ -78,6 +78,7 @@ Managed state는 Git에서 제외된 project-local `UserSettings/ActionFitPackag
 python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state all
 python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state progress --format json
 python3 Packages/com.actionfit.ai-jira/Tools~/list_work_items.py --state todo --max-results 25
+python3 Packages/com.actionfit.ai-jira/Tools~/list_overlap_work_items.py --format json
 python3 Packages/com.actionfit.ai-jira/Tools~/get_work_item.py MCC-1234 --format json
 ```
 
@@ -93,7 +94,11 @@ python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py finalize --help
 
 Claude 설치에서는 같은 명령의 `.claude/skills/...` 경로를 사용합니다. Locator 제공 자체는 쓰기 승인이 아니며, 각 명령은 소비 프로젝트의 인증·설정·gate를 다시 검사합니다.
 
-`--state all`은 완료 작업이 아니라 설정된 `todo`와 `progress` 상태를 포함합니다. 일반 read-only 호출에서 사용할 수 있지만 `jira-todo`는 후보 선택에 사용하지 않습니다. 추천에는 `--state todo`, overlap 감지에는 별도로 `--state progress`를 호출합니다. 모든 query는 결과를 설정된 프로젝트, `assignee = currentUser()`, 미해결 issue로 자동 제한하고 최근 업데이트 순으로 정렬합니다. Detail JSON에는 `configuredStatuses`, 정규화된 `issueLinks`, `descriptionContract`가 포함됩니다. Contract는 managed section 완전성, 세 Auto Start field, 명시적 prerequisite key, unresolved decision과 결정론적 `ready`, `needs-plan`, `blocked` description 상태를 보고합니다. 저장소 안전, overlap과 외부 승인은 상위 skill이 판단합니다.
+`--state all`은 완료 작업이 아니라 설정된 `todo`와 `progress` 상태를 포함합니다. 일반 read-only 호출에서 사용할 수 있지만 `jira-todo`는 후보 선택에 사용하지 않습니다. 추천에는 `--state todo`, 현재 작업 충돌 감지에는 별도로 `--state progress`를 호출합니다. 이 일반 work-list query는 설정된 프로젝트, `assignee = currentUser()`, 미해결 issue로 자동 제한하고 최근 업데이트 순으로 정렬합니다.
+
+전용 `list_overlap_work_items.py` 또는 설치된 `ai_jira_cli.py overlap --format json`은 리팩터링 같은 프로젝트 전체 중복 검사에만 사용합니다. 모든 담당자의 이슈 중 정확히 설정된 `todo`, `progress`, `done` 상태를 끝 페이지까지 조회하며 다른 QA/future 상태는 포함하지 않습니다. `project_key`, 세 상태 매핑, 인증, 권한 또는 terminal pagination 증거가 하나라도 없으면 `complete=true`를 반환하지 않고 실패합니다. 이 결과는 `jira-todo` 추천이나 자동 착수 입력으로 사용하지 않습니다. 이후 의미 기반 중복 판정은 호출 패키지가 각 이슈 상세를 읽고 직접 수행합니다.
+
+Detail JSON에는 `configuredStatuses`, 정규화된 `issueLinks`, `descriptionContract`가 포함됩니다. Contract는 managed section 완전성, 세 Auto Start field, 명시적 prerequisite key, unresolved decision과 결정론적 `ready`, `needs-plan`, `blocked` description 상태를 보고합니다. 저장소 안전, overlap과 외부 승인은 상위 skill이 판단합니다.
 
 Text 출력에는 issue key, status, title, update time이 포함됩니다. JSON 출력에는 해석된 status filter, JQL, issue URL과 Jira가 반환한 pagination metadata가 추가되며 한국어를 `\u` escape가 아닌 UTF-8로 보존합니다.
 
