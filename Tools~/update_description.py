@@ -7,6 +7,14 @@ import argparse
 from datetime import date
 
 from jira_client import adf_to_text, automation, build_client, configure_stdout, load_config
+from jira_completion import (
+    COMPLETION_PROPERTY_KEY,
+    read_json_file,
+    require_property_identity,
+    utc_timestamp,
+    validate_plan_coverage,
+    with_state,
+)
 from jira_description import prepend_qa_record, replace_managed_plan
 
 
@@ -53,6 +61,10 @@ def main() -> None:
         "--expected-updated",
         help="Required for replace-plan; Jira updated timestamp captured from the approved transient planning lock.",
     )
+    parser.add_argument(
+        "--coverage-file",
+        help="Required plan-coverage JSON for replace-plan.",
+    )
     args = parser.parse_args()
 
     text = read_text(args)
@@ -77,6 +89,18 @@ def main() -> None:
                 "Jira description changed after planning started; refusing to overwrite the managed plan. "
                 f"Expected updated={args.expected_updated}, observed updated={current_updated}."
             )
+        planning = require_property_identity(
+            client.get_issue_property(args.issue_key, COMPLETION_PROPERTY_KEY),
+            args.issue_key,
+        )
+        if planning.get("state") != "planning":
+            raise SystemExit("replace-plan requires an active Jira completion planning property.")
+        if planning.get("capturedUpdated") != args.expected_updated:
+            raise SystemExit(
+                "replace-plan expected-updated does not match the sealed planning snapshot."
+            )
+        if not args.coverage_file:
+            raise SystemExit("replace-plan requires --coverage-file.")
         progress_status = str((config.get("statuses") or {}).get("progress", ""))
         if not progress_status or current_status != progress_status:
             raise SystemExit(
@@ -85,13 +109,62 @@ def main() -> None:
             )
         try:
             updated = replace_managed_plan(current, text)
+            coverage = read_json_file(args.coverage_file, "plan coverage")
+            approved_snapshot = validate_plan_coverage(planning, updated, coverage)
         except ValueError as error:
             raise SystemExit(str(error)) from error
     client.update_description(args.issue_key, updated)
-    verified_issue = client.get_issue(args.issue_key, fields=["description"])
+    verified_issue = client.get_issue(args.issue_key, fields=["description", "updated"])
     verified = adf_to_text(verified_issue.get("fields", {}).get("description")).strip()
     if verified != updated.strip():
-        raise SystemExit(f"{args.issue_key} description verification failed after {args.mode}.")
+        if args.mode != "replace-plan":
+            raise SystemExit(f"{args.issue_key} description verification failed after {args.mode}.")
+        recovery = "description restore not attempted"
+        try:
+            client.update_description(args.issue_key, current)
+            restored = client.get_issue(args.issue_key, fields=["description"])
+            restored_text = adf_to_text(restored.get("fields", {}).get("description")).strip()
+            recovery = (
+                "description restored"
+                if restored_text == current.strip()
+                else "description restore verification failed"
+            )
+        except SystemExit as error:
+            recovery = f"description restore failed: {error}"
+        raise SystemExit(
+            f"{args.issue_key} description verification failed after replace-plan; {recovery}."
+        )
+    if args.mode == "replace-plan":
+        approved_plan = {
+            "baselineCandidate": approved_snapshot,
+            "coverage": coverage,
+            "capturedUpdated": str(verified_issue.get("fields", {}).get("updated", "")),
+            "approvedAt": utc_timestamp(),
+        }
+        updated_property = with_state(planning, "planning", approvedPlan=approved_plan)
+        try:
+            client.set_issue_property(args.issue_key, COMPLETION_PROPERTY_KEY, updated_property)
+        except SystemExit as property_error:
+            recovery = []
+            try:
+                client.update_description(args.issue_key, current)
+                restored = client.get_issue(args.issue_key, fields=["description"])
+                restored_text = adf_to_text(restored.get("fields", {}).get("description")).strip()
+                recovery.append(
+                    "description restored" if restored_text == current.strip() else "description restore verification failed"
+                )
+            except SystemExit as description_error:
+                recovery.append(f"description restore failed: {description_error}")
+            try:
+                client.set_issue_property(args.issue_key, COMPLETION_PROPERTY_KEY, planning)
+                recovery.append("planning property restored")
+            except SystemExit as rollback_error:
+                recovery.append(f"planning property restore failed: {rollback_error}")
+            raise SystemExit(
+                "replace-plan property verification failed; "
+                + "; ".join(recovery)
+                + f". Cause: {property_error}"
+            ) from property_error
     print(f"{args.issue_key} description updated with {args.mode}.")
 
 

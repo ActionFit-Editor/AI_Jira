@@ -38,6 +38,13 @@ FIELD_PATTERN = re.compile(
 )
 ISSUE_KEY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9]+-\d+\b", re.IGNORECASE)
 QA_COMPLETION_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}\s*/\s*([A-Z][A-Z0-9]+-\d+)$", re.IGNORECASE)
+QA_COMPLETION_FIELDS = (
+    "변경 요약",
+    "검증 결과",
+    "미검증 항목",
+    "QA 확인 항목",
+    "위험 영역",
+)
 HANDOFF_PATTERN = re.compile(
     r"^\d{4}-\d{2}-\d{2}\s*/\s*([A-Z][A-Z0-9]+-\d+)\s*/\s*작업 인계$",
     re.IGNORECASE,
@@ -118,6 +125,14 @@ def _section_map(text: str) -> dict[str, dict[str, Any]]:
     for section in _top_sections(text):
         result.setdefault(section["heading"], section)
     return result
+
+
+def top_level_sections(description: str) -> list[dict[str, str]]:
+    """Expose fence-aware top-level heading bodies for related Jira contracts."""
+    return [
+        {"heading": section["heading"], "body": section["body"]}
+        for section in _top_sections(description)
+    ]
 
 
 def _is_none(value: str) -> bool:
@@ -411,3 +426,43 @@ def has_qa_completion_record(description: str, issue_key: str) -> bool:
         if match and match.group(1).upper() == expected:
             return True
     return False
+
+
+def validate_qa_completion_record(description: str, issue_key: str) -> list[str]:
+    """Return deterministic errors for the issue's latest structured Korean QA record."""
+    try:
+        qa_body, _ = _split_qa_and_rest(description)
+    except ValueError:
+        return ["QA heading must appear exactly once at the top"]
+    expected = issue_key.upper()
+    matching = []
+    for heading, body in _qa_entries(qa_body):
+        match = QA_COMPLETION_PATTERN.match(heading)
+        if match and match.group(1).upper() == expected:
+            matching.append(body)
+    if len(matching) != 1:
+        return [f"exactly one completion record is required for {expected}"]
+
+    values: dict[str, str] = {}
+    duplicates: set[str] = set()
+    field_pattern = re.compile(
+        r"^\s*-\s*(변경 요약|검증 결과|미검증 항목|QA 확인 항목|위험 영역)\s*:\s*(.*?)\s*$"
+    )
+    for line in matching[0].splitlines():
+        match = field_pattern.match(line)
+        if not match:
+            continue
+        field = match.group(1)
+        if field in values:
+            duplicates.add(field)
+        values[field] = match.group(2).strip()
+
+    errors = []
+    for field in QA_COMPLETION_FIELDS:
+        if field in duplicates:
+            errors.append(f"duplicate field: {field}")
+        elif not values.get(field):
+            errors.append(f"missing or empty field: {field}")
+    if values.get("미검증 항목", "").rstrip(".").strip() != "없음":
+        errors.append("미검증 항목 must be 없음 before completion")
+    return errors

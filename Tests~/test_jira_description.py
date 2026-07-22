@@ -15,6 +15,7 @@ from jira_description import (
     prepend_handoff_record,
     prepend_qa_record,
     replace_managed_plan,
+    validate_qa_completion_record,
 )
 
 
@@ -238,6 +239,25 @@ Example only:
         self.assertIn("갱신 기록", second)
         self.assertIn("### 계획", second)
         self.assertTrue(has_qa_completion_record(second, "MCC-1490"))
+
+    def test_structured_qa_completion_requires_all_fields_and_no_unverified_work(self) -> None:
+        complete = prepend_qa_record(
+            managed_description(),
+            "MCC-1490",
+            "2026-07-15",
+            """- 변경 요약: 완료 게이트 추가
+- 검증 결과: Python 테스트 통과
+- 미검증 항목: 없음
+- QA 확인 항목: 완료 전환 확인
+- 위험 영역: Jira 상태와 property 보상""",
+        )
+        incomplete = complete.replace("- 미검증 항목: 없음", "- 미검증 항목: Unity 수동 확인")
+
+        self.assertEqual([], validate_qa_completion_record(complete, "MCC-1490"))
+        self.assertIn(
+            "미검증 항목 must be 없음 before completion",
+            validate_qa_completion_record(incomplete, "MCC-1490"),
+        )
 
     def test_handoff_replaces_prior_issue_handoff_and_preserves_qa_history(self) -> None:
         description = prepend_qa_record(

@@ -46,20 +46,23 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py create --summary "
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py create --summary "나중에 계획할 작업" --title-only-needs-plan
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode append-requirements --text "Keep the current behavior."
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode prepend-qa --text "QA 확인 내용"
-python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode replace-plan --file approved-description.md --expected-updated "2026-07-15T02:22:47.217+0000"
-python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to todo
-python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to progress
-python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to progress --purpose planning --json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py update-description MCC-1234 --mode replace-plan --file approved-description.md --expected-updated "2026-07-15T02:22:47.217+0000" --coverage-file plan-coverage.json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to todo --purpose planning
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py start MCC-1234 --branch MCC-1234-work --json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123" --review-file completion-review.json
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --list
-python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123"
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123" --review-file completion-review.json
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
 - `create`: write; normal creation validates the managed description contract. The explicit `--title-only-needs-plan` mode rejects description arguments and omits the Jira description so the todo is classified as `needs-plan`. Both modes resolve one non-subtask type to `issuetype.id`, require the current active sprint, and report success only after assignment, active-sprint membership, and todo status are verified.
-- `update-description`: write; append confirmed English requirements, prepend Korean QA notes, or replace only an explicitly approved managed plan under optimistic-concurrency and planning-lock checks.
-- `transition --to todo|progress|done`: write; move an issue through the configured AI lifecycle only when the matching transition gate is enabled. Done also requires a PR URL and a verified QA completion record.
+- `update-description`: write; append confirmed English requirements, prepend Korean QA notes, or replace an approved managed plan only when the sealed source IDs have exact plan-coverage evidence. Scope reduction requires separate explicit replanning approval.
+- `transition --to progress|todo --purpose planning`: write; create or release a verified transient planning lock. Generic implementation progress transitions are forbidden.
+- `start`: write; seal the approved requirement IDs, description digest, session, branch, and timestamps in a versioned Jira issue property before implementation.
+- `transition --to done`: write; applies the same active-baseline, unchanged-digest, exact completion-review, PR, and five-field Korean QA gates as the finalizer.
 - `transition --list`: read-only; list transitions currently available for the issue.
-- `finalize`: write; make a normal session terminal. `done` reuses the PR and QA completion guards, while `incomplete` verifies one Korean handoff record and returns the issue to configured todo using `allow_description_append` plus `allow_transition`.
+- `finalize`: write; make a normal session terminal. `done` requires the matching completion-review JSON and rejects every unsealed, changed, partial, deferred, unknown, or evidence-free requirement. `incomplete` verifies one Korean handoff, closes any active baseline, and returns to configured todo.
 - Recommend each command's `--help` for exact flags in the installed version.
 
 ## Configuration And Safety
@@ -67,11 +70,13 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 
 - Resolve ignored project configuration from `Tools/AI/jira/config.local.json`, an explicit `--config`, or `AI_JIRA_CONFIG` as documented by the package.
 - Keep `JIRA_EMAIL` and `JIRA_API_TOKEN` in environment variables or ignored local config. Never display or request a token in shared chat.
 - State that write commands may be blocked by `dry_run` or individual `allow_*` gates. Access to a command is not authorization to run it.
+- Name `allow_description_append` and `allow_transition` as the incomplete-finalization gates.
 - Explain that title-only needs-plan intake requires an explicit exact-title creation request or approval and is not a fallback for bypassing normal plan decisions or approval.
 - Explain that Jira titles and QA content are Korean while other newly managed description content is English; existing issues are not migrated in bulk.
 - Explain that `jira-plan`, `jira-auto-start`, and `jira-run` apply the shared planning-decision contract: conventions resolve one clear approach without an unnecessary question, while multiple reasonable approaches trigger one-to-three-question rounds and re-scans. Every alternative explains its difference, advantages, and disadvantages before the recommended choice and its rationale. No approval-ready plan is produced before explicit decision closure. Current-bundle recommendation delegation does not persist; broader delegation expires with the current planning invocation. Sensitive, destructive, publish, deploy, and production boundaries always keep separate approval.
 - Explain that `jira-plan`, `jira-auto-start`, and `jira-run` show complete planning approval views in Korean while retaining the exact mixed-language storage draft prepared before the preview. Approval writes that canonical draft unchanged, never a back-translation of the Korean view. A revision or lost canonical state requires a regenerated complete Korean view and new approval.
 - Explain that plan discussion and approval waiting stay in todo. Progress is transient active ownership: normal run/auto-start termination must finalize to done or return incomplete work to todo with a Korean handoff. Read-only triage reports progress as active, reserved, or stranded-review and never steals a lease.
+- Explain that `references/completion-baseline-gate.md` seals original/refined requirements in a versioned Jira issue property, requires exact plan coverage, starts implementation only through `start`, and requires an exact completion-review artifact. Legacy progress without a baseline must return incomplete to todo before restart; a partial PR never authorizes narrowing the parent issue.
 - Explain that `jira-run` and `jira-auto-start` announce `🎫 Jira: <ISSUE-KEY>` before writes and verify the planned and checked-out branch names contain the selected key. When asked about terminal titles, show `[tui]` with `terminal_title = ["spinner", "git-branch", "project"]`, distinguish user-global `~/.codex/config.toml` from trusted project `.codex/config.toml`, and note that Codex derives the project and full branch from the working directory. Do not claim key-only extraction, pre-branch conditional display, or raw OSC output.
 - Read the consuming repository's `AGENTS.md`, `CLAUDE.md`, and linked Jira guidance before advising a state-changing workflow.
 

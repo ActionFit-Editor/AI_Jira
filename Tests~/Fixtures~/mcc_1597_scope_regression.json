@@ -1,0 +1,6 @@
+{
+  "issueKey": "MCC-1597",
+  "originalDescription": "전체 로컬라이징 General 항목을 컨텐츠별로 정렬하고, 빈 셀 import 제외 규칙을 정리하며, 공통 문구를 Share로 이동하고, ID 바인딩 및 Key 변경 안전성을 확인하고, icecreamrace와 lavarush 명명 규칙을 개선하고, 전체 CSV export를 제공한다.",
+  "narrowedGoal": "Export every localization table to CSV with IDs.",
+  "expectedBlockedDisposition": "deferred"
+}

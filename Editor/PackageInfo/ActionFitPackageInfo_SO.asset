@@ -20,15 +20,15 @@ MonoBehaviour:
   _status: verified
   _description: ActionFit AI agents use this package for Jira planning, work discovery,
     automatic bounded task pickup, lifecycle guidance, and safe automation.
-  _releaseNote: "- `jira-setup` \uC2A4\uD0AC\uC744 \uCD94\uAC00\uD574 ignored local
-    config \uC900\uBE44\uC640 read-only \uC5F0\uACB0 \uD655\uC778\uC744 \uD55C \uD750\uB984\uC73C\uB85C
-    \uC548\uB0B4\uD569\uB2C8\uB2E4.\n- \uAE30\uC874 config\uB294 \uB36E\uC5B4\uC4F0\uC9C0
-    \uC54A\uACE0 \uB204\uB77D\uB41C \uD30C\uC77C\uB9CC \uBE44\uBC00\uAC12 \uC5C6\uB294
-    \uC804\uCCB4 \uACC4\uD68D\uACFC \uC2B9\uC778 \uB4A4\uC5D0 \uC0DD\uC131\uD558\uB3C4\uB85D
-    \uC81C\uD55C\uD588\uC2B5\uB2C8\uB2E4.\n- `JIRA_EMAIL`\uACFC `JIRA_API_TOKEN`\uC740
-    \uD658\uACBD \uBCC0\uC218 \uC774\uB984\uC73C\uB85C\uB9CC \uCC38\uC870\uD558\uBA70
-    token \uAC12, shell profile\uACFC home \uC124\uC815\uC744 \uC77D\uAC70\uB098
-    \uBCC0\uACBD\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.\n- \uCD08\uAE30 \uC124\uC815\uC5D0\uC11C\uB294
-    `dry_run: true`\uC640 \uBAA8\uB4E0 `allow_*: false`\uB97C \uAC15\uC81C\uD574
-    issue, sprint\uC640 description \uC4F0\uAE30\uB97C \uCC28\uB2E8\uD569\uB2C8\uB2E4."
+  _releaseNote: '- Seals versioned Jira requirement baselines before implementation.
+
+    -
+    Requires exact plan coverage for refinement and separate approval for scope reduction.
+
+    -
+    Blocks done without a matching completion review, PR, and structured Korean QA
+    record.
+
+    - Returns legacy or partial progress to todo through incomplete
+    finalization.'
   _dependenciesOverride: 

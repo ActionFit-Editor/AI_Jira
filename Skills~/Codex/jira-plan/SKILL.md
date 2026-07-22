@@ -23,7 +23,7 @@ Use this path only when the user explicitly asks to record a title-only needs-pl
 1. Read `AGENTS.md`, `CLAUDE.md`, and linked repository guidance before proposing project work.
 2. Inspect relevant source, documentation, and configuration with read-only commands so the plan reflects the current repository rather than assumptions.
 3. When Jira access is configured, run `python3 .agents/skills/jira-plan/scripts/ai_jira_cli.py list --state todo --format json` and `python3 .agents/skills/jira-plan/scripts/ai_jira_cli.py list --state progress --format json`. Read details only when needed to identify a likely duplicate, dependency, or overlap.
-4. Read `references/planning-decision-collaboration.md` and apply its convention precedence, bounded question rounds, delegation lifetime, re-scan, and decision-closure rules.
+4. Read `references/planning-decision-collaboration.md` and `references/completion-baseline-gate.md`, then apply convention precedence, bounded question rounds, delegation lifetime, re-scan, decision closure, and sealed source-coverage rules.
 5. Resolve the goal, current problem, included and excluded scope, ordered implementation approach, completion conditions, validation, dependencies, risks, and rollout or migration implications without silently selecting among material alternatives.
 6. Do not prepare the approval-ready full plan until every material decision is resolved and the user explicitly confirms decision closure.
 
@@ -73,11 +73,12 @@ Use this path only for an explicitly selected assigned unresolved todo issue who
 
 1. Re-read the issue and require its status to equal `configuredStatuses.todo`.
 2. Capture the todo issue's `updated` value, then discuss the missing scope or decisions while it stays in todo. Follow `references/planning-decision-collaboration.md` until decision closure, prepare the complete canonical mixed-language description above, follow `references/korean-approval-preview.md`, show its complete Korean approval view, and ask for explicit plan-update approval.
-3. After explicit approval, re-read the issue and require the same todo status and `updated` value from the captured approved todo snapshot. If they differ, regenerate and reapprove without transitioning. Only after a match may you move it to `progress`, re-read it, verify the transient planning lock, and capture the post-transition `updated` value.
-4. Write the retained draft to a temporary UTF-8 file outside the repository and call `python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py update-description <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value>`. Remove the temporary file.
-5. Re-read the issue, verify the approved managed contract, transition it back to `todo`, and verify the final status before responding.
+3. After explicit approval, re-read the issue and require the same todo status and `updated` value from the captured approved todo snapshot. If they differ, regenerate and reapprove without transitioning. Only after a match may you run `transition <ISSUE-KEY> --to progress --purpose planning --json`, which seals the normalized pre-refinement description or title-only summary before the progress lock.
+4. Compare every returned source requirement ID with the approved draft and create the plan-coverage JSON from `references/completion-baseline-gate.md`. Any `removed`, `deferred`, or `out-of-scope` disposition requires a rationale and separate explicit user replanning approval; approval of a partial PR never narrows the Jira scope.
+5. Write the retained draft and coverage artifact to temporary UTF-8 files outside the repository and call `python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py update-description <ISSUE-KEY> --mode replace-plan --file <path> --expected-updated <captured-value> --coverage-file <coverage-path>`. Remove the temporary files after verification.
+6. Re-read the issue, verify the approved managed contract, run `transition <ISSUE-KEY> --to todo --purpose planning`, and verify the final status before responding.
 
-The package-owned command must preserve existing Korean QA completion records and unmanaged sections. If the managed update fails after the transient lock, attempt to return the issue to `todo`, re-read it, and report both failures if rollback also fails. Never expire or steal a planning lock automatically. Waiting for approval, requested revisions, and lost canonical state must remain in todo. Only an abrupt process failure or Jira failure may exceptionally strand the issue in progress, and that failure must be reported for recovery.
+The package-owned command must preserve existing Korean QA completion records and unmanaged sections, verify exact source coverage, and compensate the description when property verification fails. If the managed update fails after the transient lock, attempt to return the issue to `todo`, re-read it, and report both failures if rollback also fails. Never expire or steal a planning lock automatically. Waiting for approval, requested revisions, and lost canonical state must remain in todo. Only an abrupt process failure or Jira failure may exceptionally strand the issue in progress, and that failure must be reported for recovery.
 
 ## Create After Approval
 
@@ -88,6 +89,8 @@ The package-owned command must preserve existing Korean QA completion records an
 5. Leave the issue in todo. Do not create a branch, leave it in progress, implement, commit, push, or open a pull request.
 
 Do not implement the planned issue in this invocation.
+
+Approval waiting stays in todo. Capture `updated`, require the same todo status before the transient planning lock, and regenerate the complete Korean approval view if the canonical draft or snapshot changes.
 
 If a likely duplicate exists, present it and obtain the user's decision before creating another issue. If the user supplies an existing issue key, refine it only through the project-approved plan-specific operation above; never perform an unrestricted description overwrite.
 

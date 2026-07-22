@@ -12,6 +12,7 @@ COMMAND_SCRIPTS = {
     "create": "create_issue.py",
     "update-description": "update_description.py",
     "transition": "transition_issue.py",
+    "start": "start_session.py",
     "finalize": "finalize_session.py",
 }
 

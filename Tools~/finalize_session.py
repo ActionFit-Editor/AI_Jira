@@ -7,8 +7,15 @@ import argparse
 from datetime import date
 
 from jira_client import adf_to_text, automation, build_client, configure_stdout, load_config, require_statuses
+from jira_completion import (
+    COMPLETION_PROPERTY_KEY,
+    read_json_file,
+    require_property_identity,
+    utc_timestamp,
+    with_state,
+)
 from jira_description import has_handoff_record, prepend_handoff_record
-from transition_issue import find_transition, validate_done_handoff
+from transition_issue import complete_issue, find_transition
 
 
 def require_finalization_gates(options: dict, outcome: str) -> None:
@@ -48,10 +55,14 @@ def transition_and_verify(client, issue_key: str, target_status: str) -> None:
         )
 
 
-def finalize_done(client, issue_key: str, statuses: dict[str, str], pr_url: str | None) -> None:
-    issue = client.get_issue(issue_key, fields=["status", "description"])
-    validate_done_handoff(issue_key, issue, statuses["progress"], pr_url)
-    transition_and_verify(client, issue_key, statuses["done"])
+def finalize_done(
+    client,
+    issue_key: str,
+    statuses: dict[str, str],
+    pr_url: str | None,
+    review: dict,
+) -> None:
+    complete_issue(client, issue_key, statuses, pr_url, review)
 
 
 def finalize_incomplete(
@@ -91,11 +102,42 @@ def finalize_incomplete(
             f"{issue_key} handoff verification failed; the issue remains in configured progress."
         )
 
+    previous_property = client.get_issue_property(issue_key, COMPLETION_PROPERTY_KEY)
+    closed_property = None
+    if previous_property is not None:
+        session = require_property_identity(previous_property, issue_key)
+        closed_property = with_state(
+            session,
+            "closed-incomplete",
+            closedIncompleteAt=utc_timestamp(),
+            handoffDate=record_date,
+        )
+        try:
+            client.set_issue_property(issue_key, COMPLETION_PROPERTY_KEY, closed_property)
+        except SystemExit as error:
+            rollback = "completion property restore not attempted"
+            try:
+                client.set_issue_property(issue_key, COMPLETION_PROPERTY_KEY, previous_property)
+                rollback = "completion property restored"
+            except SystemExit as property_error:
+                rollback = f"completion property restore failed: {property_error}"
+            raise SystemExit(
+                f"{issue_key} handoff is verified, but completion property close failed; "
+                f"{rollback}: {error}"
+            ) from error
+
     try:
         transition_and_verify(client, issue_key, statuses["todo"])
     except SystemExit as error:
+        rollback = "no completion property to restore"
+        if closed_property is not None:
+            try:
+                client.set_issue_property(issue_key, COMPLETION_PROPERTY_KEY, previous_property)
+                rollback = "completion property restored"
+            except SystemExit as property_error:
+                rollback = f"completion property restore failed: {property_error}"
         raise SystemExit(
-            f"{issue_key} handoff is verified, but todo finalization failed: {error}"
+            f"{issue_key} handoff is verified, but todo finalization failed; {rollback}: {error}"
         ) from error
 
 
@@ -137,6 +179,7 @@ def main() -> None:
     parser.add_argument("--config", help="Path to ignored local Jira config JSON.")
     parser.add_argument("--outcome", choices=["done", "incomplete"], required=True)
     parser.add_argument("--pr-url", help="Required for done finalization.")
+    parser.add_argument("--review-file", help="Required completion-review JSON for done finalization.")
     parser.add_argument("--date", default=date.today().isoformat(), help="Handoff date (YYYY-MM-DD).")
     parser.add_argument("--completed-work")
     parser.add_argument("--remaining-work")
@@ -153,7 +196,15 @@ def main() -> None:
     client = build_client(args.config)
 
     if args.outcome == "done":
-        finalize_done(client, args.issue_key, statuses, args.pr_url)
+        if not args.review_file:
+            raise SystemExit("Done finalization requires --review-file.")
+        finalize_done(
+            client,
+            args.issue_key,
+            statuses,
+            args.pr_url,
+            read_json_file(args.review_file, "completion review"),
+        )
         print(f'{args.issue_key} session finalized -> {statuses["done"]}')
         return
 

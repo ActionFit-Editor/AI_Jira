@@ -155,6 +155,7 @@ class JiraActionSkillTests(unittest.TestCase):
                     "Tools/AI/jira/update_description.py",
                     "Tools/AI/jira/transition_issue.py",
                     "Tools/AI/jira/finalize_session.py",
+                    "Tools/AI/jira/start_session.py",
                 ):
                     self.assertNotIn(project_tool, contents)
 
@@ -252,6 +253,25 @@ class JiraActionSkillTests(unittest.TestCase):
             self.assertIn("planning lock", contents.lower())
             self.assertIn("QA", contents)
             self.assertIn("PR URL", contents)
+            self.assertIn("completion-review", contents)
+            self.assertIn("--review-file", contents)
+            self.assertIn("baseline", contents.lower())
+
+    def test_write_skills_enforce_sealed_coverage_and_start_contract(self) -> None:
+        for agent in ("Codex", "Claude"):
+            for name in ("jira-plan", "jira-auto-start", "jira-run"):
+                contents = self._read_skill(agent, name)
+                self.assertIn("references/completion-baseline-gate.md", contents)
+                self.assertIn("--purpose planning", contents)
+                self.assertIn("--coverage-file", contents)
+                self.assertIn("partial", contents.lower())
+
+            for name in ("jira-auto-start", "jira-run"):
+                contents = self._read_skill(agent, name)
+                self.assertIn("ai_jira_write_cli.py start", contents)
+                self.assertIn("--branch", contents)
+                self.assertIn("legacy progress", contents.lower())
+                self.assertIn("--review-file", contents)
 
     def test_run_and_auto_start_enforce_terminal_finalization_and_pr_continuation(self) -> None:
         for agent in ("Codex", "Claude"):

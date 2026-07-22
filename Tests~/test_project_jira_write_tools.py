@@ -22,10 +22,11 @@ from finalize_session import (
 )
 import jira_client
 from jira_client import JiraClient, automation
+from jira_completion import build_active_property, with_state
 from transition_issue import find_transition, validate_done_handoff
 from update_description import append_requirements, require_mode_gate
 
-from jira_description import has_handoff_record, has_qa_completion_record
+from jira_description import has_handoff_record, has_qa_completion_record, prepend_qa_record
 
 
 ACTIVE_SPRINT_PATH = "/rest/agile/1.0/board/3/sprint?maxResults=50&state=active"
@@ -76,7 +77,14 @@ class RecordingJiraClient(JiraClient):
         self.responses = responses
         self.calls: list[tuple[str, str, dict | None]] = []
 
-    def request(self, method: str, path: str, body: dict | None = None) -> dict:
+    def request(
+        self,
+        method: str,
+        path: str,
+        body: dict | None = None,
+        *,
+        allow_not_found: bool = False,
+    ) -> dict | None:
         key = (method.upper(), path)
         self.calls.append((key[0], path, body))
         if key not in self.responses:
@@ -94,6 +102,7 @@ class FinalizationClient:
         self.fail_transition = fail_transition
         self.description_updates = 0
         self.transition_calls = 0
+        self.property = None
 
     def get_issue(self, issue_key: str, fields: list[str] | None = None) -> dict:
         return {
@@ -108,6 +117,12 @@ class FinalizationClient:
         self.description_updates += 1
         self.description = description
         return {}
+
+    def get_issue_property(self, issue_key: str, property_key: str):
+        return self.property
+
+    def set_issue_property(self, issue_key: str, property_key: str, value: dict) -> None:
+        self.property = value
 
     def list_transitions(self, issue_key: str) -> list[dict]:
         return [
@@ -159,6 +174,17 @@ def issue_type_page(*issue_types: dict, total: int | None = None, start_at: int 
 
 
 class ProjectJiraWriteToolTests(unittest.TestCase):
+    def test_project_lifecycle_entry_points_delegate_to_package_tools(self) -> None:
+        project_root = PACKAGE_ROOT.parents[1]
+        for name in ("transition_issue.py", "update_description.py", "start_session.py", "finalize_session.py"):
+            with self.subTest(name=name):
+                contents = (project_root / "Tools" / "AI" / "jira" / name).read_text(
+                    encoding="utf-8"
+                )
+                self.assertIn("com.actionfit.ai-jira", contents)
+                self.assertIn("package_main", contents)
+                self.assertNotIn("def validate_done_handoff", contents)
+
     def test_transition_selection_prefers_destination_over_action_name(self) -> None:
         transitions = [
             {"id": "11", "name": "해야 할 일", "to": {"name": "개발 진행 중"}},
@@ -169,6 +195,24 @@ class ProjectJiraWriteToolTests(unittest.TestCase):
 
         self.assertIsNotNone(selected)
         self.assertEqual("21", selected["id"])
+
+    def test_completion_property_write_uses_read_after_write_verification(self) -> None:
+        path = "/rest/api/3/issue/MCC-1/properties/actionfit.ai-jira.completion-session"
+        value = {"version": 1, "state": "active", "issueKey": "MCC-1"}
+        client = RecordingJiraClient(
+            jira_config(automation_overrides={"allow_transition": True}),
+            {
+                ("PUT", path): {},
+                ("GET", path): {"value": value},
+            },
+        )
+
+        client.set_issue_property("MCC-1", "actionfit.ai-jira.completion-session", value)
+
+        self.assertEqual(
+            [("PUT", path, value), ("GET", path, None)],
+            client.calls,
+        )
 
     def test_new_issue_requires_complete_managed_description(self) -> None:
         with self.assertRaises(SystemExit):
@@ -503,6 +547,10 @@ class ProjectJiraWriteToolTests(unittest.TestCase):
 
 ### 2026-07-15 / MCC-1490
 - 변경 요약: 완료
+- 검증 결과: 단위 테스트 통과
+- 미검증 항목: 없음
+- QA 확인 항목: 완료 전환 확인
+- 위험 영역: Jira lifecycle
 
 ---
 
@@ -597,34 +645,83 @@ Done
         self.assertEqual("개발 진행 중", client.status)
         self.assertTrue(has_handoff_record(client.description, "MCC-1490"))
 
-    def test_done_finalization_requires_verified_qa_and_reaches_done(self) -> None:
-        client = FinalizationClient(
-            """## QA 확인 필요 사항
+    def test_incomplete_finalization_closes_an_active_baseline(self) -> None:
+        from test_jira_description import managed_description
 
-### 2026-07-15 / MCC-1490
-- 변경 요약: 완료
-
----
-
-### 계획
-- 확인 항목:
-
----
-
-## Goal
-Done
-"""
+        description = managed_description()
+        client = FinalizationClient(description)
+        client.property = with_state(
+            build_active_property(
+                "MCC-1490",
+                description,
+                "2026-07-15T00:00:00.000+0000",
+                session_id="session-1",
+                branch="MCC-1490-work",
+            ),
+            "active",
         )
+
+        finalize_incomplete(
+            client,
+            "MCC-1490",
+            jira_config()["statuses"],
+            "2026-07-15",
+            completed_work="분석",
+            remaining_work="구현",
+            branch_or_pr="MCC-1490-work",
+            validation="단위 테스트",
+            blocker_or_approval="없음",
+            resume_condition="todo에서 재착수",
+        )
+
+        self.assertEqual("해야 할 일", client.status)
+        self.assertEqual("closed-incomplete", client.property["state"])
+
+    def test_done_finalization_requires_verified_qa_and_reaches_done(self) -> None:
+        from test_jira_description import managed_description
+
+        description = prepend_qa_record(
+            managed_description(),
+            "MCC-1490",
+            "2026-07-15",
+            """- 변경 요약: 완료
+- 검증 결과: 단위 테스트 통과
+- 미검증 항목: 없음
+- QA 확인 항목: 완료 전환 확인
+- 위험 영역: Jira lifecycle""",
+        )
+        client = FinalizationClient(description)
+        prepared = build_active_property(
+            "MCC-1490",
+            description,
+            "2026-07-15T00:00:00.000+0000",
+            session_id="session-1",
+            branch="MCC-1490-work",
+        )
+        client.property = with_state(prepared, "active")
+        review = {
+            "version": 1,
+            "issueKey": "MCC-1490",
+            "sessionId": "session-1",
+            "baselineDigest": client.property["baseline"]["descriptionDigest"],
+            "prUrl": "https://github.com/ActionFitGames/Cat_Merge_Cafe/pull/1234",
+            "requirements": [
+                {"id": item["id"], "status": "complete", "evidence": ["test evidence"]}
+                for item in client.property["baseline"]["requirements"]
+            ],
+        }
 
         finalize_done(
             client,
             "MCC-1490",
             jira_config()["statuses"],
             "https://github.com/ActionFitGames/Cat_Merge_Cafe/pull/1234",
+            review,
         )
 
         self.assertEqual("개발 완료", client.status)
         self.assertEqual(1, client.transition_calls)
+        self.assertEqual("completed", client.property["state"])
 
 
 if __name__ == "__main__":

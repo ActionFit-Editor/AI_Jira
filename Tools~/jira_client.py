@@ -114,7 +114,14 @@ class JiraClient:
     def dry_run(self) -> bool:
         return bool(self.options.get("dry_run", True))
 
-    def request(self, method: str, path: str, body: dict[str, Any] | None = None) -> dict[str, Any]:
+    def request(
+        self,
+        method: str,
+        path: str,
+        body: dict[str, Any] | None = None,
+        *,
+        allow_not_found: bool = False,
+    ) -> dict[str, Any] | None:
         method = method.upper()
         is_read_post = method == "POST" and path in READ_POST_PATHS
         if method in WRITE_METHODS and self.dry_run and not is_read_post:
@@ -135,6 +142,8 @@ class JiraClient:
                 raw = response.read().decode("utf-8")
                 return json.loads(raw) if raw else {}
         except HTTPError as error:
+            if allow_not_found and error.code == 404:
+                return None
             detail = error.read().decode("utf-8", errors="replace")
             raise SystemExit(f"Jira API failed: HTTP {error.code} {error.reason}\n{detail}") from error
 
@@ -205,6 +214,39 @@ class JiraClient:
             f"/rest/api/3/issue/{quote(issue_key)}/transitions",
             {"transition": {"id": transition_id}},
         )
+
+    def get_issue_property(self, issue_key: str, property_key: str) -> Any:
+        result = self.request(
+            "GET",
+            f"/rest/api/3/issue/{quote(issue_key)}/properties/{quote(property_key, safe='')}",
+            allow_not_found=True,
+        )
+        if result is None:
+            return None
+        if not isinstance(result, dict) or "value" not in result:
+            raise SystemExit("Jira issue property response is missing its value.")
+        return result["value"]
+
+    def set_issue_property(self, issue_key: str, property_key: str, value: dict[str, Any]) -> None:
+        if not self.options.get("allow_transition"):
+            raise SystemExit("Completion session property writes require allow_transition=true.")
+        path = f"/rest/api/3/issue/{quote(issue_key)}/properties/{quote(property_key, safe='')}"
+        self.request("PUT", path, value)
+        if self.dry_run:
+            return
+        verified = self.get_issue_property(issue_key, property_key)
+        if verified != value:
+            raise SystemExit("Jira completion session property failed read-after-write verification.")
+
+    def delete_issue_property(self, issue_key: str, property_key: str) -> None:
+        if not self.options.get("allow_transition"):
+            raise SystemExit("Completion session property writes require allow_transition=true.")
+        path = f"/rest/api/3/issue/{quote(issue_key)}/properties/{quote(property_key, safe='')}"
+        self.request("DELETE", path, allow_not_found=True)
+        if self.dry_run:
+            return
+        if self.get_issue_property(issue_key, property_key) is not None:
+            raise SystemExit("Jira completion session property deletion failed verification.")
 
     def resolve_issue_type_id(self, issue_type: str | int | None) -> str:
         project_key = self.config.get("project_key")
