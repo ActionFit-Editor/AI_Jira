@@ -3,4 +3,4 @@ interface:
   short_description: "구현 결정을 확인하고 선택한 Jira 작업을 실행합니다"
   default_prompt: "Use $jira-run to resolve any new material decision collaboratively, then implement the selected Jira issue and use a Korean plan approval view when refinement is required."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

@@ -20,15 +20,13 @@ MonoBehaviour:
   _status: verified
   _description: ActionFit AI agents use this package for Jira planning, work discovery,
     automatic bounded task pickup, lifecycle guidance, and safe automation.
-  _releaseNote: '- Seals versioned Jira requirement baselines before implementation.
-
-    -
-    Requires exact plan coverage for refinement and separate approval for scope reduction.
-
-    -
-    Blocks done without a matching completion review, PR, and structured Korean QA
-    record.
-
-    - Returns legacy or partial progress to todo through incomplete
-    finalization.'
+  _releaseNote: "- `jira-setup`, `jira-plan`, `jira-auto-start`, `jira-run`\uC744
+    Codex \uAE30\uBCF8 \uCEE8\uD14D\uC2A4\uD2B8\uC5D0 \uD3EC\uD568\uD588\uC2B5\uB2C8\uB2E4.\n-
+    \uC790\uC5F0\uC5B4 Jira \uC694\uCCAD\uC5D0\uC11C \uC804\uCCB4 \uC2A4\uD0AC \uBAA9\uB85D\uC744
+    \uC0AC\uC6A9\uD560 \uC218 \uC788\uC9C0\uB9CC Jira \uC4F0\uAE30\uC640 \uC791\uC5C5
+    \uCC29\uC218\uC5D0\uB294 \uAE30\uC874 \uC0AC\uC6A9\uC790 \uC2B9\uC778\uC774 \uACC4\uC18D
+    \uD544\uC694\uD569\uB2C8\uB2E4.\n- `dry_run`, \uC791\uC5C5\uBCC4 `allow_*` gate,
+    sealed baseline\uACFC completion \uAC80\uC99D\uC740 \uBCC0\uACBD\uD558\uC9C0
+    \uC54A\uC558\uC2B5\uB2C8\uB2E4.\n- Claude\uC758 `disable-model-invocation: true`
+    \uC815\uCC45\uC740 \uAE30\uC874\uB300\uB85C \uC720\uC9C0\uD569\uB2C8\uB2E4."
   _dependenciesOverride: 

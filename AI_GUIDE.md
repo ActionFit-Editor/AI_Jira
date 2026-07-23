@@ -7,12 +7,12 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `1.0.30`
+- Current package version at generation time: `1.0.31`
 - Unity version: `6000.2`
 
 ## Purpose
 
-AI Jira provides project-local Codex and Claude help, triage, planning, automatic bounded pickup, and explicit-run skills; a read-only work-item API/CLI; package-owned write clients; and Jira automation guidance for AI agents: safe issue creation, task discovery, sealed requirement baselines, exact plan coverage, evidence-backed terminal session finalization, mixed-language managed descriptions, transient planning locks, bounded description updates, and local secret configuration.
+AI Jira provides project-local Codex and Claude help, triage, planning, automatic bounded pickup, and authorization-gated run skills; a read-only work-item API/CLI; package-owned write clients; and Jira automation guidance for AI agents: safe issue creation, task discovery, sealed requirement baselines, exact plan coverage, evidence-backed terminal session finalization, mixed-language managed descriptions, transient planning locks, bounded description updates, and local secret configuration.
 
 The package owns status-filtered work-item discovery and the common write implementation under `Tools~/`. Installed write-capable skills call `Skills~/Shared/scripts/ai_jira_write_cli.py`, which locates an embedded package before `Library/PackageCache`. Consuming projects may keep compatibility entry points at project-local paths such as `Tools/AI/jira/*.py`; local configuration and credentials remain outside the package.
 
@@ -80,7 +80,7 @@ Read this file when:
 - Do not add AI-created labels or move issues to a QA status. QA-board movement remains a manual user action after build verification.
 - Keep Jira REST calls behind the package/client boundary so projects can replace auth or endpoint details without changing workflow rules.
 - Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and use schema v2 `Skills~/manifest.json` with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit `access`. `jira-setup` owns secret-free ignored local-config initialization and read-only connection verification. Shared references own decision collaboration, dual-representation approval, and the completion baseline gate for both agents. Custom Package Manager copies registered sources to project-local `.agents/skills` and `.claude/skills`, overlays shared files from `Skills~/Shared`, and generates the managed `PACKAGE_SKILLS.md` only inside installed `jira-help` targets.
-- `jira-help` and `jira-todo` must remain read-only. `jira-setup`, `jira-plan`, `jira-auto-start`, and `jira-run` are write-capable and must remain explicit/manual-only through Codex `allow_implicit_invocation: false` and Claude `disable-model-invocation: true`.
+- `jira-help` and `jira-todo` must remain read-only. `jira-setup`, `jira-plan`, `jira-auto-start`, and `jira-run` are write-capable and remain available in the default Codex context through `allow_implicit_invocation: true`; context availability never replaces explicit user authorization, `dry_run`, action-specific `allow_*` gates, or lifecycle validation. Claude keeps `disable-model-invocation: true`.
 - `jira-setup` may create only a missing, regular, Git-ignored project config after showing an exact secret-free plan and obtaining approval. It must use environment-variable references for credentials, keep `dry_run` and every `allow_*` gate disabled, refuse tracked/unignored/existing targets, and verify with read-only package commands. It never reads or prints token values, modifies shell profiles, enables Jira writes, or overwrites/deletes local config.
 - AI Jira depends on `com.actionfit.custompackagemanager` `1.1.106` so schema v2 installation and generated inventory have one shared owner. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
 - Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. New managed hashes belong in `UserSettings/ActionFitPackageManager/skill-install-state.json`; the preserved `UserSettings/AIJira/skill-install-state.json` is migration input only.

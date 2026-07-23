@@ -3,4 +3,4 @@ interface:
   short_description: "Jira 작업을 판정하고 중요 결정을 함께 확정합니다"
   default_prompt: "Use $jira-auto-start to classify Jira todo items, then execute the first eligible task or collaboratively resolve material decisions before the Korean plan approval view."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

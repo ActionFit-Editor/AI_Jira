@@ -13,7 +13,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.30"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.31"
   }
 }
 ```
@@ -43,7 +43,7 @@ Installer는 AI Jira package metadata, manifest와 agent별 `SKILL.md` descripti
 
 모든 plan 승인 entry point는 사용자에게 보이는 전체 plan을 한국어로 표시하고 기술 식별자를 보존합니다. Jira에는 한국어 title/QA section과 영어 managed section을 저장합니다. 승인은 preview 전에 준비한 정확한 canonical storage draft를 쓰며 한국어 view를 다시 영어로 번역하지 않습니다. 수정 요청은 canonical draft를 먼저 업데이트하고 완전한 한국어 view를 다시 생성해 새 승인을 요구합니다. 중단 또는 context 손실로 canonical draft가 없거나 불확실하면 Jira에 쓰지 않고 두 표현을 다시 생성해 재확인합니다. 영어 저장 본문은 사용자가 명시적으로 요청할 때만 표시합니다.
 
-세 write-capable skill은 모두 manual-only입니다. Codex는 암시적 호출을 비활성화하고 Claude는 `disable-model-invocation: true`로 제공합니다.
+네 write-capable skill도 Codex 기본 컨텍스트에 포함됩니다. 컨텍스트 노출만으로 Jira 쓰기나 작업 착수가 승인되지는 않으며 기존 사용자 승인, `dry_run`, 작업별 `allow_*` gate와 lifecycle 검증을 모두 유지합니다. Claude는 기존 `disable-model-invocation: true`를 유지합니다.
 
 ## 표시되는 Jira 사용자 정보
 
