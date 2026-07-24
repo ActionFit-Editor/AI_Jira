@@ -13,6 +13,16 @@ DECISION_REFERENCE = (
 DECISION_FIXTURE = (
     PACKAGE_ROOT / "Tests~" / "Fixtures~" / "planning_decision_collaboration.json"
 )
+RISK_VALIDATION_REFERENCE = (
+    PACKAGE_ROOT
+    / "Skills~"
+    / "Shared"
+    / "references"
+    / "risk-proportional-validation-plan.md"
+)
+RISK_VALIDATION_FIXTURE = (
+    PACKAGE_ROOT / "Tests~" / "Fixtures~" / "risk_proportional_validation_plan.json"
+)
 
 
 class JiraActionSkillTests(unittest.TestCase):
@@ -88,6 +98,87 @@ class JiraActionSkillTests(unittest.TestCase):
         self.assertIn("never authorizes access to credentials or sensitive data", contents)
         self.assertIn("Do not add a new top-level managed heading, enum", contents)
         self.assertIn("does not require another decision-closure confirmation", contents)
+
+    def test_risk_validation_reference_consumes_workagent_contract(self) -> None:
+        contents = RISK_VALIDATION_REFERENCE.read_text(encoding="utf-8")
+
+        for required in (
+            "`com.actionfit.ai-workagent` owns",
+            "direct package dependency",
+            "**Required validation**",
+            "**Conditional escalation triggers**",
+            "**Intentionally excluded expensive validation**",
+            "`editor-simulated`",
+            "`remote-assisted`",
+            "`player-build`",
+            "`device-verified`",
+            "Generic “mobile QA” wording does not authorize a Player build",
+            "requires additional user approval",
+            "Isolate a clearly unrelated existing failure at most once",
+            "separate explicit approval",
+        ):
+            self.assertIn(required, contents)
+
+        self.assertIn("Do not add a new top-level managed heading or schema field", contents)
+        package = json.loads((PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
+        self.assertEqual("0.1.1", package["dependencies"]["com.actionfit.ai-workagent"])
+
+    def test_planning_and_execution_skills_apply_risk_validation_reference(self) -> None:
+        for agent in ("Codex", "Claude"):
+            for name in ("jira-plan", "jira-auto-start", "jira-run"):
+                contents = self._read_skill(agent, name)
+                self.assertIn("references/risk-proportional-validation-plan.md", contents)
+                self.assertIn("required validation", contents.lower())
+                self.assertIn("conditional escalation", contents.lower())
+                self.assertIn("intentionally excluded expensive validation", contents.lower())
+
+            plan = self._read_skill(agent, "jira-plan")
+            self.assertIn("Do not add a new top-level", plan)
+            run = self._read_skill(agent, "jira-run")
+            self.assertIn("Player build absent from the approved `Validation Plan`", run)
+
+    def test_risk_validation_fixtures_cover_expected_escalation_boundaries(self) -> None:
+        fixture = json.loads(RISK_VALIDATION_FIXTURE.read_text(encoding="utf-8"))
+        scenarios = {scenario["name"]: scenario for scenario in fixture["scenarios"]}
+
+        self.assertEqual(1, fixture["schemaVersion"])
+        self.assertEqual(
+            {
+                "routine_ui",
+                "touch_or_sensor",
+                "platform_sdk_or_build_pipeline",
+                "unrelated_existing_failure",
+                "signing_or_distribution",
+            },
+            set(scenarios),
+        )
+        for scenario in scenarios.values():
+            self.assertIn(scenario["taskClass"], {"routine", "complex", "critical"})
+            self.assertIsInstance(scenario["requiredValidation"], list)
+            self.assertIsInstance(scenario["conditionalEscalation"], list)
+            self.assertIsInstance(scenario["intentionallyExcluded"], list)
+            self.assertTrue(scenario["approvalRequirement"])
+
+        self.assertIn("editor-simulated", scenarios["routine_ui"]["requiredValidation"])
+        self.assertIn("android-player-build", scenarios["routine_ui"]["intentionallyExcluded"])
+        self.assertIn("ios-player-build", scenarios["routine_ui"]["intentionallyExcluded"])
+        self.assertIn("remote-assisted", scenarios["touch_or_sensor"]["requiredValidation"])
+        self.assertIn(
+            "android-player-build",
+            scenarios["platform_sdk_or_build_pipeline"]["requiredValidation"],
+        )
+        self.assertIn(
+            "ios-player-build",
+            scenarios["platform_sdk_or_build_pipeline"]["intentionallyExcluded"],
+        )
+        self.assertEqual(
+            ["isolate-unrelated-failure-once"],
+            scenarios["unrelated_existing_failure"]["requiredValidation"],
+        )
+        self.assertEqual(
+            "separate-explicit-approval",
+            scenarios["signing_or_distribution"]["approvalRequirement"],
+        )
 
     def test_multi_turn_decision_fixtures_cover_questions_rescans_and_delegation(self) -> None:
         fixture = json.loads(DECISION_FIXTURE.read_text(encoding="utf-8"))
@@ -398,12 +489,12 @@ class JiraActionSkillTests(unittest.TestCase):
         self.assertFalse(scenarios["interrupted_canonical_state"]["canonicalAvailable"])
         self.assertIn("context compaction", scenarios["interrupted_canonical_state"]["recoveryEvidence"])
 
-    def test_codex_write_skills_disable_implicit_invocation(self) -> None:
+    def test_codex_write_skills_are_available_in_default_context(self) -> None:
         for name in ("jira-plan", "jira-auto-start", "jira-run"):
             path = PACKAGE_ROOT / "Skills~" / "Codex" / name / "agents" / "openai.yaml"
             metadata = path.read_text(encoding="utf-8")
 
-            self.assertIn("allow_implicit_invocation: false", metadata)
+            self.assertIn("allow_implicit_invocation: true", metadata)
             self.assertIn("material decision", metadata)
 
     def test_claude_write_skills_disable_model_invocation(self) -> None:

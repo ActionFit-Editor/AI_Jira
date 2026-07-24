@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "scenarios": [
+    {
+      "name": "routine_ui",
+      "taskClass": "routine",
+      "requiredValidation": ["targeted-tests", "final-diff-review", "editor-simulated"],
+      "conditionalEscalation": ["new-regression-signal"],
+      "intentionallyExcluded": ["android-player-build", "ios-player-build", "device-verified"],
+      "approvalRequirement": "none"
+    },
+    {
+      "name": "touch_or_sensor",
+      "taskClass": "routine",
+      "requiredValidation": ["targeted-tests", "remote-assisted"],
+      "conditionalEscalation": ["platform-build-signal"],
+      "intentionallyExcluded": ["player-build", "device-verified"],
+      "approvalRequirement": "none"
+    },
+    {
+      "name": "platform_sdk_or_build_pipeline",
+      "taskClass": "complex",
+      "requiredValidation": ["integration-checks", "android-player-build"],
+      "conditionalEscalation": ["shared-mobile-boundary-evidence"],
+      "intentionallyExcluded": ["ios-player-build", "signing", "distribution"],
+      "approvalRequirement": "approved-validation-plan-or-additional-player-build-approval"
+    },
+    {
+      "name": "unrelated_existing_failure",
+      "taskClass": "routine",
+      "requiredValidation": ["isolate-unrelated-failure-once"],
+      "conditionalEscalation": ["failure-is-plausibly-related"],
+      "intentionallyExcluded": ["full-regression-from-unrelated-failure", "player-build-from-unrelated-failure"],
+      "approvalRequirement": "none"
+    },
+    {
+      "name": "signing_or_distribution",
+      "taskClass": "critical",
+      "requiredValidation": ["owner-invariants"],
+      "conditionalEscalation": [],
+      "intentionallyExcluded": ["signing", "aab-ipa-distribution", "testflight", "google-play", "upload", "deployment"],
+      "approvalRequirement": "separate-explicit-approval"
+    }
+  ]
+}

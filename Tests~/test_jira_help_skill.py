@@ -120,7 +120,7 @@ class JiraHelpSkillTests(unittest.TestCase):
         codex_metadata = (
             PACKAGE_ROOT / "Skills~" / "Codex" / "jira-setup" / "agents" / "openai.yaml"
         ).read_text(encoding="utf-8")
-        self.assertIn("allow_implicit_invocation: false", codex_metadata)
+        self.assertIn("allow_implicit_invocation: true", codex_metadata)
 
     @staticmethod
     def _read_skill(agent: str) -> str:

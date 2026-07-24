@@ -23,7 +23,7 @@ Use this path only when the user explicitly asks to record a title-only needs-pl
 1. Read `AGENTS.md`, `CLAUDE.md`, and linked repository guidance before proposing project work.
 2. Inspect relevant source, documentation, and configuration with read-only commands so the plan reflects the current repository rather than assumptions.
 3. When Jira access is configured, run `python3 .agents/skills/jira-plan/scripts/ai_jira_cli.py list --state todo --format json` and `python3 .agents/skills/jira-plan/scripts/ai_jira_cli.py list --state progress --format json`. Read details only when needed to identify a likely duplicate, dependency, or overlap.
-4. Read `references/planning-decision-collaboration.md` and `references/completion-baseline-gate.md`, then apply convention precedence, bounded question rounds, delegation lifetime, re-scan, decision closure, and sealed source-coverage rules.
+4. Read `references/planning-decision-collaboration.md`, `references/completion-baseline-gate.md`, and `references/risk-proportional-validation-plan.md`, then apply convention precedence, bounded question rounds, delegation lifetime, re-scan, decision closure, sealed source-coverage, and risk-proportional validation rules.
 5. Resolve the goal, current problem, included and excluded scope, ordered implementation approach, completion conditions, validation, dependencies, risks, and rollout or migration implications without silently selecting among material alternatives.
 6. Do not prepare the approval-ready full plan until every material decision is resolved and the user explicitly confirms decision closure.
 
@@ -64,6 +64,8 @@ Use this complete description structure:
 Keep the three `Auto Start` fields and every managed heading. Give every English section content and use `None.` when a section has no applicable item. Use `none` when no prerequisite or decision exists. Leave the Korean `확인 항목:` value blank when there is no planned QA check. Do not add default fields for allowed paths, forbidden paths, external state, or sensitive/destructive work; infer those boundaries from repository guidance and the actual scope.
 
 Make implementation steps ordered and concrete. Make completion conditions observable and validation steps executable. Identify unresolved decisions instead of hiding them in the plan.
+
+Inside the existing `## Validation Plan`, distinguish required validation, conditional escalation triggers, and intentionally excluded expensive validation. Record the selected Unity evidence level when applicable. Generic mobile QA does not authorize a Player build, and signing, upload, distribution, deployment, credentials, and runner-secret work retains separate explicit approval. Do not add a new top-level heading or schema field for this classification.
 
 After decision closure, record confirmed material choices and their rationale under `## Scope` as `### Confirmed Decisions` according to `references/planning-decision-collaboration.md`. Then read `references/korean-approval-preview.md` and follow its dual-representation contract. Prepare and retain the exact canonical storage draft first, then show its complete Korean approval view without displaying the English storage body by default. Ask for explicit approval of the requested Jira create or managed-plan update and explain that approval writes the corresponding pre-preview canonical mixed-language draft. Decision closure, discussion, partial approval, or approval of only the approach does not authorize a Jira write.
 
