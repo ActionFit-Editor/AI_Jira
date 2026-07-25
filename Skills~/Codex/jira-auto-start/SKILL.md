@@ -9,9 +9,9 @@ Advance exactly one bounded Jira task. Treat explicit invocation as approval to 
 
 ## Discover Candidates
 
-1. From the consuming project root, run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py list --state todo --format json`. Only these issues may become new work.
+1. From the consuming project root, run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py classify --state todo`. This compact result is the ordered candidate set; only these issues may become new work.
 2. Separately run `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py list --state progress --format json`. Use these issues only as overlap, dependency, exclusion, and stranded-progress recovery evidence.
-3. Read every todo candidate with `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py detail <ISSUE-KEY> --format json` in query order. Use its `issueLinks` and `configuredStatuses` as prerequisite evidence.
+3. Use the compact structural and prerequisite evidence for every todo candidate. Do not retrieve each full description. After deterministic selection, read only the selected candidate with `python3 .agents/skills/jira-auto-start/scripts/ai_jira_cli.py detail <ISSUE-KEY> --format json`.
 4. Read `AGENTS.md`, `CLAUDE.md`, linked repository guidance, `references/planning-decision-collaboration.md`, `references/completion-baseline-gate.md`, and `references/risk-proportional-validation-plan.md` before judging scope, validation cost, or whether an implementation direction is unambiguous.
 5. Inspect branches, worktrees, leases, Unity processes, and pull requests with read-only commands to detect existing, overlapping, or stranded work. Classify each progress issue with deterministic precedence: `active` when an open PR, dirty worktree, Unity process, or equivalent current-work evidence exists; otherwise `reserved` when a matching lease exists, regardless of acquisition PID liveness; otherwise `stranded-review` when only merged/closed PRs or no active work evidence remains. Never expire, release, or steal a lease during discovery.
 
@@ -24,11 +24,11 @@ Recognize a prerequisite only from explicit evidence:
 
 Do not treat arbitrary Jira keys, related links, duplicate links, or an outward relation such as `blocks` or `is required by` as prerequisites. If a prerequisite statement has no unambiguous issue key or the relation direction is unclear, classify the candidate as blocked.
 
-Read every declared prerequisite through `detail <ISSUE-KEY>`. Count it complete only when its `resolution` is non-empty or its `status` exactly equals `configuredStatuses.done`. A prerequisite in todo, progress, an unknown state, or an unreadable issue makes the candidate blocked. A candidate with no declared prerequisite passes this gate as `none declared`.
+Use the compact batch prerequisite state. An ordinary prerequisite is complete when its resolution is non-empty or its status equals legacy `done`, `done_auto`, `done_manual`, or `done_verified`. The explicit syntax `MCC-1234 [verified]` requires exactly `configuredStatuses.done_verified` and is not satisfied by resolution alone. A prerequisite in todo, progress, an unknown state, or an unreadable issue makes the candidate blocked. A candidate with no declared prerequisite passes this gate as `none declared`.
 
 ## Classify Every Candidate
 
-Use `descriptionContract` from issue detail as deterministic description evidence, then add repository, prerequisite, overlap, and safety evidence. Assign exactly one result:
+Use compact `planState`, `allowed`, and prerequisite evidence, then add repository, overlap, and safety evidence. Assign exactly one result:
 
 - `startable`: `descriptionContract.state` is `ready`, every declared prerequisite is complete, the local scope is bounded and verifiable, and no safety or overlap gate remains.
 - `needs-plan`: the contract reports `needs-plan`, required scope or validation is missing, or a product decision remains but can be resolved with the user without external input.
@@ -72,7 +72,7 @@ If the update fails after lock acquisition, attempt to return to `todo` and veri
 4. Use only the package-owned write locator and enabled consuming-project gates. Missing tools, dry-run mode, or disabled gates are blockers; never call Jira directly to bypass them.
 5. Implement only the selected issue, preserve unrelated changes, update required documentation, and run required risk-proportional validation. Escalate only when a recorded trigger is present; generic mobile QA never independently authorizes a Player build.
 6. Review the complete diff, commit without an AI co-author trailer, push, and create the pull request using repository rules. Reuse an incomplete open PR only for the same issue after Jira has returned to todo and no active lease owns it. Never reuse a merged or closed PR branch; create a new follow-up branch and PR.
-7. After the PR exists, compare every sealed requirement with the diff and validation, create the exact completion-review JSON required by `references/completion-baseline-gate.md`, prepend and verify all five Korean QA fields, then run `finalize <ISSUE-KEY> --outcome done --pr-url <PR-URL> --review-file <REVIEW-JSON>`. Partial, deferred, unknown, or evidence-free work must finalize incomplete. Never move Jira to QA.
+7. After the PR exists, compare every sealed requirement with the diff and validation and create the exact completion-review JSON required by `references/completion-baseline-gate.md`. In extended mode also create the versioned verification plan pinned to the PR/branch/commit, classify pending automatic checks before manual checks, and pass it through `--verification-plan-file`. Prepend and verify all five Korean QA fields, then run `ai_jira_write_cli.py finalize <ISSUE-KEY> --outcome done --pr-url <PR-URL> --review-file <REVIEW-JSON>` with that optional plan file and verify the selected automatic-validation, manual-validation, verified, or legacy done status. Partial implementation, failed minimum gates, unknown scope, or evidence-free work must finalize incomplete.
 8. If work is incomplete, unclear, approval-blocked, or stopped after a partial PR, run the locator's `finalize <ISSUE-KEY> --outcome incomplete` command with every Korean handoff field, verify the handoff and configured todo status, then follow repository lease-release rules. A PR alone never proves completion.
 9. Report the selected issue key, branch, worktree, PR, Jira state, validation, and remaining blockers in the repository's required format.
 

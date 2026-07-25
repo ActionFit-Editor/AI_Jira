@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
-"""List unresolved Jira work assigned to the current user."""
+"""List configured Jira lifecycle work assigned to the current user."""
 
 from __future__ import annotations
 
 import argparse
 from collections.abc import Sequence
 
-from jira_work_items import configure_output, load_config, query_work_items, write_json, write_text
+from jira_work_items import (
+    STATE_FILTERS,
+    configure_output,
+    load_config,
+    query_work_items,
+    write_json,
+    write_text,
+)
 
 
 def positive_result_limit(value: str) -> int:
@@ -18,16 +25,24 @@ def positive_result_limit(value: str) -> int:
 
 def build_parser(default_state: str = "all", default_config: str | None = None) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="List unresolved Jira work assigned to the authenticated user."
+        description="List configured Jira lifecycle work assigned to the authenticated user."
     )
     parser.add_argument(
         "--state",
-        choices=("todo", "progress", "all"),
+        choices=STATE_FILTERS,
         default=default_state,
-        help="Configured workflow states to include; all means todo and progress.",
+        help=(
+            "Configured workflow states to include; all remains todo and progress. "
+            "Verification filters require the opt-in extended lifecycle."
+        ),
     )
     parser.add_argument("--format", choices=("text", "json"), default="text")
     parser.add_argument("--max-results", type=positive_result_limit, default=50)
+    parser.add_argument(
+        "--all-pages",
+        action="store_true",
+        help="Read every enhanced-search page; required for a complete automatic-validation queue.",
+    )
     parser.add_argument(
         "--config",
         default=default_config,
@@ -44,7 +59,12 @@ def main(
     configure_output()
     args = build_parser(default_state=default_state, default_config=default_config).parse_args(argv)
     config = load_config(args.config)
-    result = query_work_items(config, state=args.state, max_results=args.max_results)
+    result = query_work_items(
+        config,
+        state=args.state,
+        max_results=args.max_results,
+        all_pages=args.all_pages,
+    )
     if args.format == "json":
         write_json(result)
     else:

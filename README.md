@@ -13,7 +13,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#1.0.32"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.1"
   }
 }
 ```
@@ -28,14 +28,14 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 
 AI Jira는 `Skills~/manifest.json`을 통해 `skillPrefix: jira`, 필수 `helpSkill: jira-help`와 명시적인 read-only/write-capable access를 가진 schema v2 package-owned source를 등록합니다. Unity가 AI Jira와 Custom Package Manager 의존성을 해석하면 공통 installer가 사용하는 프로젝트에 동기화합니다.
 
-- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-setup`, `.agents/skills/jira-todo`, `.agents/skills/jira-plan`, `.agents/skills/jira-auto-start`, `.agents/skills/jira-run`
-- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-setup`, `.claude/skills/jira-todo`, `.claude/skills/jira-plan`, `.claude/skills/jira-auto-start`, `.claude/skills/jira-run`
+- Codex: `.agents/skills/jira-help`, `.agents/skills/jira-setup`, `.agents/skills/jira-todo`, `.agents/skills/jira-plan`, `.agents/skills/jira-auto-start`, `.agents/skills/jira-auto-verify`, `.agents/skills/jira-run`
+- Claude: `.claude/skills/jira-help`, `.claude/skills/jira-setup`, `.claude/skills/jira-todo`, `.claude/skills/jira-plan`, `.claude/skills/jira-auto-start`, `.claude/skills/jira-auto-verify`, `.claude/skills/jira-run`
 
 Installer는 AI Jira package metadata, manifest와 agent별 `SKILL.md` description으로 설치된 각 `jira-help` 안에 `PACKAGE_SKILLS.md`를 생성합니다. `jira-help`는 이 inventory를 먼저 읽으므로 두 번째 hard-coded skill 목록 없이 package identity, 모든 관련 skill, `$name` 호출, 사용 시점 description과 access 경계가 동기화됩니다.
 
 `jira-help`는 Jira 작업을 실행하지 않고 생성 inventory, read-only/write-capable 명령군, 설정, safety gate와 Unity 메뉴를 설명합니다. `jira-todo`는 할당된 미해결 `todo`와 `progress` issue를 별도로 조회합니다. 새 작업 후보는 `todo` issue뿐입니다. Progress issue는 branch, pull request, worktree, lease 및 Unity process 증거에 따라 `active`, `reserved`, `stranded-review`로 보고하지만 추천 순서에서는 제외합니다. Acquisition PID 생존 여부만으로 lease를 오래됐다고 판단하지 않으며 triage가 lease를 해제하거나 가져가지 않습니다.
 
-`jira-plan`은 명시적으로 요청된 제목 전용 needs-plan을 나중에 계획할 `todo`로 접수하거나, 개발 아이디어를 조사하고 논의하며 canonical 혼합 언어 Jira 저장 draft를 준비한 뒤 `todo` issue 하나를 생성하기 전에 완전한 한국어 승인 view를 만듭니다. 제목 전용 접수는 정확한 한국어 제목 승인 후 설명 없이 생성하며 일반 planning 결정을 우회하는 fallback으로 사용하지 않습니다. 기존 needs-plan 논의와 승인 대기도 todo에 유지합니다. 승인된 managed-plan 쓰기에서만 짧고 검증된 progress lock을 사용하고 plan-only 작업은 응답 전에 todo로 돌아갑니다. `jira-auto-start`는 할당된 모든 미해결 todo를 분류하고 시작 가능한 첫 항목을 실행하며, 시작 가능한 항목이 없을 때만 첫 needs-plan 항목의 refinement를 제안합니다. Jira resolution이 설정되거나 status가 설정된 `done`과 일치할 때만 prerequisite 완료로 판단합니다. 민감·파괴적·publish·deployment·production·credential 작업은 별도 승인을 유지합니다. `jira-run`도 명시적으로 선택한 issue를 같은 승인 protocol로 처리합니다.
+`jira-plan`은 명시적으로 요청된 제목 전용 needs-plan을 나중에 계획할 `todo`로 접수하거나, 개발 아이디어를 조사하고 논의하며 canonical 혼합 언어 Jira 저장 draft를 준비한 뒤 `todo` issue 하나를 생성하기 전에 완전한 한국어 승인 view를 만듭니다. 제목 전용 접수는 정확한 한국어 제목 승인 후 설명 없이 생성하며 일반 planning 결정을 우회하는 fallback으로 사용하지 않습니다. 기존 needs-plan 논의와 승인 대기도 todo에 유지합니다. 승인된 managed-plan 쓰기에서만 짧고 검증된 progress lock을 사용하고 plan-only 작업은 응답 전에 todo로 돌아갑니다. `jira-auto-start`는 할당된 모든 미해결 todo를 분류하고 시작 가능한 첫 항목을 실행하며, 시작 가능한 항목이 없을 때만 첫 needs-plan 항목의 refinement를 제안합니다. 일반 prerequisite는 legacy done과 세 development-complete 상태를 모두 허용하고, `MCC-1234 [verified]`는 정확한 verified 상태를 요구합니다. `jira-auto-verify`는 명시적인 요청이 있을 때만 자동 검증 대기열 또는 선택 key를 한 session에서 순차 처리합니다. 민감·파괴적·publish·deployment·production·credential 작업은 별도 승인을 유지합니다. `jira-run`도 명시적으로 선택한 issue를 같은 승인 protocol로 처리합니다.
 
 `jira-plan`, `jira-auto-start`, `jira-run`의 planning 경로는 `Skills~/Shared/references/planning-decision-collaboration.md`를 공유합니다. 사용자 요구, 저장소/API-owner 지침, 패키지 가이드, 일관된 기존 패턴 순으로 한 가지 방식을 결정할 수 있으면 불필요한 질문을 하지 않습니다. 반대로 컨벤션으로 결정되지 않는 합리적인 방식이 여러 개면 한 회차에 연관 질문 1~3개를 제시하고, 각 선택지의 차이·장점·단점을 같은 기준으로 설명한 뒤 추천안과 근거를 안내합니다. 답변 뒤에는 전체 범위를 다시 탐색합니다. 미해결 결정이 있는 동안에는 approval-ready plan을 만들지 않으며, 확정 결정·적용 컨벤션·에이전트 가정 요약에 대한 종료 확인 뒤에만 canonical draft를 준비합니다. 추천 위임은 기본적으로 현재 질문 묶음에만 적용되고, 명시적인 광범위 위임도 현재 planning invocation에서 끝납니다.
 
@@ -48,7 +48,7 @@ Installer는 AI Jira package metadata, manifest와 agent별 `SKILL.md` descripti
 - 일반적인 “모바일 QA”는 Player build 승인이 아니며 승인된 `Validation Plan`에 없던 build는 추가 승인이 필요합니다.
 - 명확히 무관한 기존 실패는 한 번만 격리하고, signing·AAB/IPA 배포·TestFlight·Google Play·Slack upload·deployment·credential·runner secret은 기존 별도 승인을 유지합니다.
 
-일반 `jira-run`과 `jira-auto-start` 구현은 `start` 명령이 Jira issue property에 요구사항 ID, 설명 digest, branch와 session ID를 봉인한 뒤 시작합니다. Done은 동일 baseline, PR, 모든 요구사항의 구체적 evidence가 있는 completion-review JSON과 다섯 필드의 한국어 QA 완료 기록이 모두 일치할 때만 허용됩니다. 미봉인 legacy progress, 일부 구현, 범위 축소, deferred 항목은 완료할 수 없으며 incomplete로 todo에 돌아간 뒤 다시 착수해야 합니다.
+일반 `jira-run`과 `jira-auto-start` 구현은 `start` 명령이 Jira issue property에 요구사항 ID, 설명 digest, branch와 session ID를 봉인한 뒤 시작합니다. 개발 완료는 동일 baseline, PR, 모든 요구사항의 구체적 evidence가 있는 completion-review JSON과 다섯 필드의 한국어 QA 기록이 모두 일치할 때만 허용됩니다. 확장 lifecycle에서는 PR/branch/commit을 고정한 versioned verification plan이 추가로 필요하며 남은 자동, 수동, 없음에 따라 정확히 한 상태를 선택합니다. 미봉인 legacy progress, 일부 구현, 범위 축소, 실패한 최소 safety gate는 개발 완료로 분류할 수 없으며 incomplete로 todo에 돌아간 뒤 다시 착수해야 합니다.
 
 모든 plan 승인 entry point는 사용자에게 보이는 전체 plan을 한국어로 표시하고 기술 식별자를 보존합니다. Jira에는 한국어 title/QA section과 영어 managed section을 저장합니다. 승인은 preview 전에 준비한 정확한 canonical storage draft를 쓰며 한국어 view를 다시 영어로 번역하지 않습니다. 수정 요청은 canonical draft를 먼저 업데이트하고 완전한 한국어 view를 다시 생성해 새 승인을 요구합니다. 중단 또는 context 손실로 canonical draft가 없거나 불확실하면 Jira에 쓰지 않고 두 표현을 다시 생성해 재확인합니다. 영어 저장 본문은 사용자가 명시적으로 요청할 때만 표시합니다.
 
@@ -73,7 +73,7 @@ Planning-only 및 read-only 흐름은 응답에 관련 Jira key를 표시하지�
 
 Managed state는 Git에서 제외된 project-local `UserSettings/ActionFitPackageManager/skill-install-state.json`에 저장합니다. 누락된 managed target은 복원하고 패키지 콘텐츠 변경 시 변경되지 않은 managed target을 refresh합니다. 기존 unmanaged target과 사용자가 수정한 managed target은 경고와 함께 보존합니다. 자동 설치는 user home/global skill 디렉터리에 쓰거나 skill을 삭제하지 않으며 Unity batch mode에서 건너뜁니다. 명시적 제거는 변경되지 않은 managed target만 삭제하고 install/refresh 명령을 다시 사용할 때까지 자동 재생성을 비활성화합니다.
 
-기존 `UserSettings/AIJira/skill-install-state.json`은 migration 입력으로 제자리에 유지합니다. Custom Package Manager는 현재 hash가 기록된 installed hash와 여전히 일치할 때만 legacy target을 인수하고 이전에 비활성화한 자동 설치 설정도 보존합니다. AI Jira는 WorkAgent `0.1.1`과 Custom Package Manager `1.1.106`에 직접 의존하므로 실행 정책 owner를 항상 해석하고, Jira 전용 두 번째 writer 대신 모든 ActionFit 패키지가 사용하는 하나의 설치 engine을 통해 schema v2 inventory를 생성합니다.
+기존 `UserSettings/AIJira/skill-install-state.json`은 migration 입력으로 제자리에 유지합니다. Custom Package Manager는 현재 hash가 기록된 installed hash와 여전히 일치할 때만 legacy target을 인수하고 이전에 비활성화한 자동 설치 설정도 보존합니다. AI Jira는 Jira Core `0.1.0`, WorkAgent `0.2.0`, Custom Package Manager `2.0.0`에 직접 의존합니다. Core는 config/auth/REST/JQL/ADF와 issue-property primitive만 소유하고 facade는 기존 skill 이름, CLI, write gate, planning/session/verification 의미를 유지합니다.
 
 ## AI 가이드
 
@@ -91,7 +91,7 @@ python3 Packages/com.actionfit.ai-jira/Tools~/list_overlap_work_items.py --forma
 python3 Packages/com.actionfit.ai-jira/Tools~/get_work_item.py MCC-1234 --format json
 ```
 
-쓰기 가능한 skill은 설치된 agent 경로의 locator를 호출합니다. `create`, `update-description`, `transition`, `start`, `finalize`가 package-owned `Tools~` 구현으로 전달되며 embedded와 PackageCache 설치를 모두 지원합니다.
+쓰기 가능한 skill은 설치된 agent 경로의 locator를 호출합니다. `create`, `update-description`, `transition`, `start`, `finalize`, `verify`가 package-owned `Tools~` 구현으로 전달되며 embedded와 PackageCache 설치를 모두 지원합니다.
 
 ```bash
 python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py create --help
@@ -100,17 +100,23 @@ python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py update-description 
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py transition --help
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py start --help
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py finalize --help
+python3 .agents/skills/jira-auto-verify/scripts/ai_jira_cli.py list --state automatic-validation --all-pages --format json
+python3 .agents/skills/jira-auto-verify/scripts/ai_jira_write_cli.py verify --help
 ```
 
 Claude 설치에서는 같은 명령의 `.claude/skills/...` 경로를 사용합니다. Locator 제공 자체는 쓰기 승인이 아니며, 각 명령은 소비 프로젝트의 인증·설정·gate를 다시 검사합니다.
 
 `--state all`은 완료 작업이 아니라 설정된 `todo`와 `progress` 상태를 포함합니다. 일반 read-only 호출에서 사용할 수 있지만 `jira-todo`는 후보 선택에 사용하지 않습니다. 추천에는 `--state todo`, 현재 작업 충돌 감지에는 별도로 `--state progress`를 호출합니다. 이 일반 work-list query는 설정된 프로젝트, `assignee = currentUser()`, 미해결 issue로 자동 제한하고 최근 업데이트 순으로 정렬합니다.
 
-전용 `list_overlap_work_items.py` 또는 설치된 `ai_jira_cli.py overlap --format json`은 리팩터링 같은 프로젝트 전체 중복 검사에만 사용합니다. 모든 담당자의 이슈 중 정확히 설정된 `todo`, `progress`, `done` 상태를 끝 페이지까지 조회하며 다른 QA/future 상태는 포함하지 않습니다. `project_key`, 세 상태 매핑, 인증, 권한 또는 terminal pagination 증거가 하나라도 없으면 `complete=true`를 반환하지 않고 실패합니다. 이 결과는 `jira-todo` 추천이나 자동 착수 입력으로 사용하지 않습니다. 이후 의미 기반 중복 판정은 호출 패키지가 각 이슈 상세를 읽고 직접 수행합니다.
+확장 lifecycle에서는 `--state automatic-validation`, `manual-validation`, `verified`, `development-complete`를 추가로 사용할 수 있습니다. 이 필터는 Jira resolution 설정과 무관하게 정확한 status를 읽어 완료 상태에서 자동 QA queue가 사라지는 것을 방지합니다. 기존 `all` 의미는 변경하지 않습니다. Detail/list JSON은 `lifecycleState`와 `verificationState`를 추가합니다.
+
+전용 `list_overlap_work_items.py` 또는 설치된 `ai_jira_cli.py overlap --format json`은 리팩터링 같은 프로젝트 전체 중복 검사에만 사용합니다. Legacy mode는 `todo`, `progress`, `done`, 확장 mode는 여기에 세 development-complete 상태를 더해 끝 페이지까지 조회합니다. `project_key`, status mapping, 인증, 권한 또는 terminal pagination 증거가 하나라도 없으면 `complete=true`를 반환하지 않고 실패합니다. 이 결과는 `jira-todo` 추천이나 자동 착수 입력으로 사용하지 않습니다. 이후 의미 기반 중복 판정은 호출 패키지가 각 이슈 상세를 읽고 직접 수행합니다.
 
 Detail JSON에는 `configuredStatuses`, 정규화된 `issueLinks`, `descriptionContract`가 포함됩니다. Contract는 managed section 완전성, 세 Auto Start field, 명시적 prerequisite key, unresolved decision과 결정론적 `ready`, `needs-plan`, `blocked` description 상태를 보고합니다. 저장소 안전, overlap과 외부 승인은 상위 skill이 판단합니다.
 
 Text 출력에는 issue key, status, title, update time이 포함됩니다. JSON 출력에는 해석된 status filter, JQL, issue URL과 Jira가 반환한 pagination metadata가 추가되며 한국어를 `\u` escape가 아닌 UTF-8로 보존합니다.
+
+자동 착수는 `ai_jira_cli.py classify --state todo`로 모든 후보의 bounded 구조·선행 상태만 먼저 읽고 선택된 한 이슈에만 `detail`을 사용합니다. `ai_jira_cli.py snapshot MCC-1234`는 선택 이슈, 명시적 선행 작업, completion property 요약과 일치하는 branch/PR/lease·validation 상태만 반환하며 full description과 무관한 Todo는 포함하지 않습니다.
 
 다른 package-local 도구에서도 Python API를 사용할 수 있습니다.
 
@@ -182,6 +188,55 @@ python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py update-description
 
 Package-owned `create_issue.py`의 일반 생성은 Jira write 전에 이 managed contract를 검증하므로 불완전하거나 unresolved인 새 draft는 잘못된 todo 작업을 만들지 않고 로컬에서 실패합니다. 명시적인 `--title-only-needs-plan`만 예외이며 `--description` 또는 `--description-file`과 함께 사용하면 차단하고 Jira description 필드를 생략합니다. 따라서 생성 issue는 이후 조회에서 `descriptionContract.state=needs-plan`으로 분류됩니다. 이 모드는 정확한 제목의 명시적 생성 승인과 중복 확인이 필요한 향후 planning 접수이며, 일반 plan의 결정·승인 절차를 우회하지 않습니다.
 
+## 개발 완료 검증 lifecycle
+
+Legacy config는 계속 `todo`, `progress`, `done`만 사용합니다. 새 lifecycle은 다음 세 mapping이 모두 non-empty일 때만 opt-in 활성화됩니다. 하나만 빠지거나 서로 같은 Jira status를 가리키면 모든 lifecycle 명령이 fail closed 합니다.
+
+```json
+{
+  "statuses": {
+    "todo": "해야 할 일",
+    "progress": "개발 진행 중",
+    "done": "개발 완료",
+    "done_auto": "개발 완료 - 자동 검증 필요",
+    "done_manual": "개발 완료 - 수동 검증 필요",
+    "done_verified": "개발 완료 - 검증 완료"
+  }
+}
+```
+
+- `done_auto`: 구현 요구사항, PR, compile/static/minimum safety gate는 완료됐고 AI가 효율적으로 실행할 자동 검증이 남았습니다.
+- `done_manual`: 자동 검증은 남지 않았고 사용자 판단이 더 적합한 수동 검증만 남았습니다.
+- `done_verified`: 모든 필수 자동·수동 검증이 완료됐습니다.
+- 자동과 수동이 함께 남으면 항상 `done_auto`부터 시작합니다.
+- 사용자는 Jira에서 `done_manual`에서 `done_verified`로 직접 이동할 수 있으며 Jira transition history가 확인 증거입니다.
+- 세 상태는 ordinary prerequisite를 모두 만족합니다. Verified만 필요한 dependency는 `Prerequisites: MCC-1234 [verified]`로 명시합니다.
+
+Jira 관리자는 활성화 전에 exact status와 다음 destination edge를 구성해야 합니다. Package는 각 실제 write 전에 현재 issue에서 필요한 destination을 preflight하지만 status를 생성·이름 변경·삭제·publish하지 않습니다.
+
+- progress -> done_auto, done_manual, done_verified
+- done_auto -> todo, done_manual, done_verified
+- done_manual -> done_verified
+
+마이그레이션은 Jira 관리자가 preview 후 수동 적용합니다.
+
+- 기존 `개발 완료` -> `개발 완료 - 검증 완료`
+- 기존 `QA 완료` -> `개발 완료 - 검증 완료`
+- 기존 `QA 진행 중` -> `개발 완료 - 수동 검증 필요`
+- legacy issue를 `개발 완료 - 자동 검증 필요`로 추측하지 않음
+
+`done_auto` issue에는 completion property의 versioned verification plan이 있어야 합니다. Candidate는 exact PR, sealed branch와 40자리 commit SHA로 고정됩니다. Check에는 ID, automatic/manual mode, 설명, evidence level, 상태, 결과 evidence와 timestamp가 저장되며 `command`, `shell`, `script` 같은 실행 text는 허용하지 않습니다.
+
+```bash
+python3 .agents/skills/jira-auto-verify/scripts/ai_jira_write_cli.py verify inspect MCC-1234 --json
+python3 .agents/skills/jira-auto-verify/scripts/ai_jira_write_cli.py verify preflight MCC-1234 --json
+python3 .agents/skills/jira-auto-verify/scripts/ai_jira_write_cli.py verify finalize MCC-1234 \
+  --candidate-commit 0123456789abcdef0123456789abcdef01234567 \
+  --result-file verification-result.json --json
+```
+
+자동 검증 통과는 manual check가 남으면 `done_manual`, 없으면 `done_verified`로 이동합니다. Related defect는 evidence와 resume condition을 기록하고 `todo`로 돌아갑니다. Environment, device/tool availability, approval 또는 stale candidate blocker는 `done_auto`에 남아 재개 조건을 보존합니다. 자동 QA workflow는 product code 수정, defect fix, merge, signing, upload, distribution, deployment, credential, runner-secret 또는 production 작업을 수행하지 않습니다.
+
 ## 개인 Jira 자격 증명
 
 Jira 작업 검색은 인증된 Atlassian 계정을 사용합니다. `assignee = currentUser()`가 해당 개발자의 작업을 반환하도록 각 개발자는 자신의 Jira 계정 email과 API token을 사용해야 합니다.
@@ -238,7 +293,7 @@ Git에서 제외된 local config에서 sprint write gate와 active sprint 생성
 
 ## 세션 마무리
 
-Jira 기반 개발 작업은 PR 생성만으로 Jira lifecycle이 끝나지 않습니다. PR URL이 생긴 뒤 활성화된 경우 한국어 QA note를 앞에 추가하고 설정된 done으로 finalize합니다. 미완료 작업은 현재 한국어 handoff 기록과 함께 todo로 finalize합니다.
+Jira 기반 개발 작업은 PR 생성만으로 Jira lifecycle이 끝나지 않습니다. PR URL이 생긴 뒤 한국어 QA note를 앞에 추가하고 legacy done 또는 남은 검증에 따른 확장 상태로 finalize합니다. 미완료 작업은 현재 한국어 handoff 기록과 함께 todo로 finalize합니다.
 
 Use:
 
@@ -247,13 +302,18 @@ python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py update-description 
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome done \
   --pr-url "https://github.com/org/repo/pull/123" \
   --review-file completion-review.json
+# 확장 lifecycle에서만 verification plan을 추가합니다.
+python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome done \
+  --pr-url "https://github.com/org/repo/pull/123" \
+  --review-file completion-review.json \
+  --verification-plan-file verification-plan.json
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome incomplete \
   --completed-work "분석 완료" --remaining-work "구현 및 검증" \
   --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" \
   --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
-Done은 active baseline과 현재 요구사항 digest가 같은지 확인하고, review의 issue key·session ID·baseline digest·PR URL이 정확히 일치하는지 검증합니다. 모든 sealed requirement는 중복 없이 `complete`와 구체적인 evidence를 가져야 합니다. 한국어 QA 기록은 `변경 요약`, `검증 결과`, `미검증 항목`, `QA 확인 항목`, `위험 영역`이 모두 비어 있지 않아야 하고 done에서는 `미검증 항목: 없음`이어야 합니다. 검증된 review와 digest는 Jira property에 보존됩니다. Incomplete는 handoff를 검증하고 기존 baseline을 닫은 뒤 todo로 돌아갑니다.
+Finalizer는 active baseline과 현재 요구사항 digest가 같은지 확인하고, review의 issue key·session ID·baseline digest·PR URL이 정확히 일치하는지 검증합니다. 모든 sealed requirement는 중복 없이 `complete`와 구체적인 evidence를 가져야 합니다. 한국어 QA 기록은 `변경 요약`, `검증 결과`, `미검증 항목`, `QA 확인 항목`, `위험 영역`이 모두 비어 있지 않아야 합니다. Legacy done 또는 바로 verified일 때 `미검증 항목: 없음`이 필요하고, 확장 mode의 auto/manual 상태에서는 정확한 pending check를 기록합니다. 검증된 review, verification plan과 digest는 Jira property에 보존됩니다. Incomplete는 handoff를 검증하고 기존 baseline을 닫은 뒤 todo로 돌아갑니다.
 
 미완료 open PR은 Jira가 todo로 돌아오고 active lease가 소유하지 않을 때만 같은 issue로 재개할 수 있습니다. Merge 또는 close된 PR branch는 재사용하지 않으며 후속 작업은 최신 integration branch에서 새 PR로 시작합니다.
 
@@ -266,3 +326,18 @@ Done은 active baseline과 현재 요구사항 digest가 같은지 확인하고,
 
 - Project-local secret과 board mapping은 패키지 밖의 Git 제외 local config 파일에 유지해야 합니다.
 - 기존 프로젝트 경로의 compatibility entry point는 제거하지 않으며 package-owned 구현을 호출하는 wrapper 또는 기존 호환 구현으로 계속 동작해야 합니다.
+
+## 2.0.1 변경 사항
+
+- policy-neutral Jira Core 패키지로 config/auth/REST/JQL/ADF primitive를 분리했습니다.
+- 기존 `jira-*` skill, CLI, project wrapper, write gate와 verification 의미는 facade에 유지했습니다.
+- bounded snapshot과 compact two-pass Todo classification을 추가했습니다.
+
+## 2.0.0 변경 사항
+
+- 구현 완료와 기능 검증 대기를 분리하는 opt-in 자동·수동·검증 완료 lifecycle을 추가했습니다.
+- 후보 PR·branch·commit에 고정된 verification plan, 순차 자동 QA workflow, 결과 evidence와 전환 보상을 추가했습니다.
+- Legacy 3상태 config, ordinary/verified-only prerequisite, 읽기 전용 queue filter와 관리자 migration 지침을 함께 검증합니다.
+- 추상 계약 전환 릴리스 그래프에 맞춰 WorkAgent와 Custom Package Manager 의존성 버전을 정렬했습니다.
+- 런타임과 Editor 동작 및 공개 API 구현은 변경하지 않았습니다.
+- Package publish, tag, catalog 변경과 live Jira workflow 관리·bulk migration은 이 변경에 포함하지 않습니다.

@@ -37,6 +37,10 @@ FIELD_PATTERN = re.compile(
     r"(?mi)^\s*-?\s*(Allowed|Prerequisites|Decisions Required)\s*:\s*(.*?)\s*$"
 )
 ISSUE_KEY_PATTERN = re.compile(r"\b[A-Z][A-Z0-9]+-\d+\b", re.IGNORECASE)
+VERIFIED_PREREQUISITE_PATTERN = re.compile(
+    r"\b([A-Z][A-Z0-9]+-\d+)\b\s*\[\s*verified\s*\]",
+    re.IGNORECASE,
+)
 QA_COMPLETION_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}\s*/\s*([A-Z][A-Z0-9]+-\d+)$", re.IGNORECASE)
 QA_COMPLETION_FIELDS = (
     "변경 요약",
@@ -186,6 +190,16 @@ def parse_description_contract(description: str) -> dict[str, Any]:
     prerequisite_keys = [] if _is_none(prerequisites_raw) else [
         key.upper() for key in ISSUE_KEY_PATTERN.findall(prerequisites_raw)
     ]
+    verified_prerequisite_keys = {
+        key.upper() for key in VERIFIED_PREREQUISITE_PATTERN.findall(prerequisites_raw)
+    }
+    prerequisite_requirements = [
+        {
+            "key": key,
+            "requiresVerified": key in verified_prerequisite_keys,
+        }
+        for key in prerequisite_keys
+    ]
     ambiguous_prerequisites = bool(
         prerequisites_raw and not _is_none(prerequisites_raw) and not prerequisite_keys
     )
@@ -238,6 +252,7 @@ def parse_description_contract(description: str) -> dict[str, Any]:
             "allowedRaw": allowed_raw,
             "prerequisitesRaw": prerequisites_raw,
             "prerequisiteKeys": prerequisite_keys,
+            "prerequisiteRequirements": prerequisite_requirements,
             "ambiguousPrerequisites": ambiguous_prerequisites,
             "decisionsRequiredRaw": decisions_raw,
             "hasUnresolvedDecisions": unresolved_decisions,
@@ -428,8 +443,18 @@ def has_qa_completion_record(description: str, issue_key: str) -> bool:
     return False
 
 
-def validate_qa_completion_record(description: str, issue_key: str) -> list[str]:
+def validate_qa_completion_record(
+    description: str,
+    issue_key: str,
+    *,
+    require_no_unverified: bool = True,
+    require_pending_unverified: bool = False,
+) -> list[str]:
     """Return deterministic errors for the issue's latest structured Korean QA record."""
+    if require_no_unverified and require_pending_unverified:
+        raise ValueError(
+            "QA validation cannot require both no unverified work and pending unverified work."
+        )
     try:
         qa_body, _ = _split_qa_and_rest(description)
     except ValueError:
@@ -463,6 +488,14 @@ def validate_qa_completion_record(description: str, issue_key: str) -> list[str]
             errors.append(f"duplicate field: {field}")
         elif not values.get(field):
             errors.append(f"missing or empty field: {field}")
-    if values.get("미검증 항목", "").rstrip(".").strip() != "없음":
+    if (
+        require_no_unverified
+        and values.get("미검증 항목", "").rstrip(".").strip() != "없음"
+    ):
         errors.append("미검증 항목 must be 없음 before completion")
+    if (
+        require_pending_unverified
+        and values.get("미검증 항목", "").rstrip(".").strip() == "없음"
+    ):
+        errors.append("미검증 항목 must name pending validation before deferred completion")
     return errors

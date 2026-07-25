@@ -29,6 +29,10 @@ Run installed read-only commands from the consuming project root:
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state todo --format json
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state progress --format json
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state all --format json
+python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state automatic-validation --format json
+python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state manual-validation --format json
+python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state verified --format json
+python3 .agents/skills/jira-help/scripts/ai_jira_cli.py list --state development-complete --format json
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py overlap --format json
 python3 .agents/skills/jira-help/scripts/ai_jira_cli.py detail MCC-1234 --format json
 ```
@@ -36,7 +40,8 @@ python3 .agents/skills/jira-help/scripts/ai_jira_cli.py detail MCC-1234 --format
 - `list --state todo`: read-only; list assigned unresolved new-work candidates.
 - `list --state progress`: read-only; list assigned unresolved work already in development.
 - `list --state all`: read-only; combine todo and progress for raw inspection, not `jira-todo` candidate ranking.
-- `overlap`: read-only; list every assignee's issues in exactly configured todo, progress, and done across every enhanced-search page for explicit project-wide duplicate-work analysis. It never feeds task recommendation or automatic pickup.
+- Extended list states: read-only; list automatic-validation, manual-validation, verified, or all three development-complete states. These require all three opt-in status mappings and do not redefine `all`.
+- `overlap`: read-only; list every assignee's issues in the configured base lifecycle plus all enabled extended development-complete states across every enhanced-search page for explicit project-wide duplicate-work analysis. It never feeds task recommendation or automatic pickup.
 - `detail <ISSUE-KEY>`: read-only; return one issue's description and implementation context.
 
 Explain these package-owned write commands without running them by default:
@@ -53,6 +58,9 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py start MCC-1234 --b
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123" --review-file completion-review.json
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --list
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123" --review-file completion-review.json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py verify inspect MCC-1234 --json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py verify preflight MCC-1234 --json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py verify finalize MCC-1234 --candidate-commit 0123456789abcdef0123456789abcdef01234567 --result-file verification-result.json --json
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
@@ -62,7 +70,8 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 
 - `start`: write; seal the approved requirement IDs, description digest, session, branch, and timestamps in a versioned Jira issue property before implementation.
 - `transition --to done`: write; applies the same active-baseline, unchanged-digest, exact completion-review, PR, and five-field Korean QA gates as the finalizer.
 - `transition --list`: read-only; list transitions currently available for the issue.
-- `finalize`: write; make a normal session terminal. `done` requires the matching completion-review JSON and rejects every unsealed, changed, partial, deferred, unknown, or evidence-free requirement. `incomplete` verifies one Korean handoff, closes any active baseline, and returns to configured todo.
+- `finalize`: write; complete implementation only after the matching review. Extended mode also requires `--verification-plan-file`, pins PR/branch/commit, and selects automatic-validation, manual-validation, or verified; legacy mode keeps configured done. `incomplete` verifies one Korean handoff, closes any active baseline, and returns to configured todo.
+- `verify`: inspect/preflight are read-only; finalize writes evidence for one pinned automatic-validation issue and advances to manual/verified, returns a related defect to todo, or preserves the automatic queue for environment, approval, or stale-candidate blockers.
 - Recommend each command's `--help` for exact flags in the installed version.
 
 ## Configuration And Safety
@@ -70,6 +79,7 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 
 - Resolve ignored project configuration from `Tools/AI/jira/config.local.json`, an explicit `--config`, or `AI_JIRA_CONFIG` as documented by the package.
 - Keep `JIRA_EMAIL` and `JIRA_API_TOKEN` in environment variables or ignored local config. Never display or request a token in shared chat.
 - State that write commands may be blocked by `dry_run` or individual `allow_*` gates. Access to a command is not authorization to run it.
+- Explain that `statuses.done_auto`, `statuses.done_manual`, and `statuses.done_verified` are an all-or-none opt-in extension. Partial or duplicate mappings fail closed; absent mappings preserve legacy three-state behavior.
 - Name `allow_description_append` and `allow_transition` as the incomplete-finalization gates.
 - Explain that title-only needs-plan intake requires an explicit exact-title creation request or approval and is not a fallback for bypassing normal plan decisions or approval.
 - Explain that Jira titles and QA content are Korean while other newly managed description content is English; existing issues are not migrated in bulk.

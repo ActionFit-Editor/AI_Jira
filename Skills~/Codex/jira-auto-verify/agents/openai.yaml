@@ -1,0 +1,6 @@
+interface:
+  display_name: "Jira Auto Verify"
+  short_description: "자동 검증 대기 이슈를 후보 revision별로 순차 QA합니다"
+  default_prompt: "Use $jira-auto-verify to validate assigned automatic-validation Jira issues sequentially against their pinned candidates and preserve evidence."
+policy:
+  allow_implicit_invocation: true

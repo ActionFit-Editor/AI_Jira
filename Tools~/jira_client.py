@@ -4,20 +4,22 @@
 from __future__ import annotations
 
 import argparse
-import base64
 import json
-import os
 import sys
 from typing import Any
-from urllib.error import HTTPError
 from urllib.parse import quote
-from urllib.request import Request, urlopen
 
-from jira_work_items import load_config
+from jira_core_loader import load_core
+from jira_statuses import require_statuses
+
+core = load_core()
+load_config = core.load_config
+get_auth = core.resolve_auth
+to_adf = core.to_adf
+adf_to_text = core.adf_to_text
 
 WRITE_METHODS = {"POST", "PUT", "DELETE"}
 READ_POST_PATHS = {"/rest/api/3/search/jql"}
-REQUIRED_STATUSES = ("todo", "progress", "done")
 CREATE_ISSUE_TYPE_PAGE_SIZE = 50
 
 
@@ -42,72 +44,9 @@ def automation(config: dict[str, Any]) -> dict[str, Any]:
     return values
 
 
-def require_statuses(config: dict[str, Any]) -> dict[str, str]:
-    statuses = config.get("statuses", {})
-    missing = [key for key in REQUIRED_STATUSES if not statuses.get(key)]
-    if missing:
-        joined = ", ".join(missing)
-        raise SystemExit(
-            f"Missing Jira status mapping(s): {joined}. "
-            "Fill Tools/AI/jira/config.local.json before running Jira automation."
-        )
-    return {key: statuses[key] for key in REQUIRED_STATUSES}
-
-
-def get_auth(config: dict[str, Any]) -> tuple[str, str]:
-    auth = config.get("auth", {})
-    email = auth.get("email") or os.getenv(auth.get("email_env", "JIRA_EMAIL"), "")
-    token = auth.get("api_token") or os.getenv(auth.get("api_token_env", "JIRA_API_TOKEN"), "")
-    if not email or not token:
-        raise SystemExit(
-            "Missing Jira credentials. Set env vars or ignored Tools/AI/jira/config.local.json."
-        )
-    return email, token
-
-
-def to_adf(text: str) -> dict[str, Any]:
-    content = []
-    for line in text.splitlines() or [""]:
-        if line:
-            content.append(
-                {
-                    "type": "paragraph",
-                    "content": [{"type": "text", "text": line}],
-                }
-            )
-        else:
-            content.append({"type": "paragraph"})
-    return {"type": "doc", "version": 1, "content": content}
-
-
-def adf_to_text(value: Any) -> str:
-    if isinstance(value, str):
-        return value
-    lines: list[str] = []
-
-    def walk(node: Any) -> None:
-        if isinstance(node, dict):
-            if node.get("type") == "text":
-                lines.append(str(node.get("text", "")))
-            for child in node.get("content", []):
-                walk(child)
-            if node.get("type") in {"paragraph", "heading"}:
-                lines.append("\n")
-        elif isinstance(node, list):
-            for child in node:
-                walk(child)
-
-    walk(value)
-    text = "".join(lines)
-    return "\n".join(line.rstrip() for line in text.splitlines()).strip()
-
-
-class JiraClient:
+class JiraClient(core.JiraRestClient):
     def __init__(self, config: dict[str, Any]):
-        self.config = config
-        self.base_url = str(config.get("jira_base_url", "")).rstrip("/")
-        if not self.base_url or "your-domain" in self.base_url:
-            raise SystemExit("Set jira_base_url in Tools/AI/jira/config.local.json.")
+        super().__init__(config)
         self.options = automation(config)
 
     @property
@@ -128,44 +67,7 @@ class JiraClient:
             print(json.dumps({"dry_run": True, "method": method, "path": path, "body": body}, ensure_ascii=False, indent=2))
             return {"dry_run": True}
 
-        email, token = get_auth(self.config)
-        auth_bytes = f"{email}:{token}".encode("utf-8")
-        headers = {
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-            "Authorization": "Basic " + base64.b64encode(auth_bytes).decode("ascii"),
-        }
-        data = json.dumps(body).encode("utf-8") if body is not None else None
-        request = Request(self.base_url + path, data=data, headers=headers, method=method)
-        try:
-            with urlopen(request) as response:
-                raw = response.read().decode("utf-8")
-                return json.loads(raw) if raw else {}
-        except HTTPError as error:
-            if allow_not_found and error.code == 404:
-                return None
-            detail = error.read().decode("utf-8", errors="replace")
-            raise SystemExit(f"Jira API failed: HTTP {error.code} {error.reason}\n{detail}") from error
-
-    def search_issues(
-        self,
-        jql: str,
-        max_results: int = 10,
-        fields: list[str] | None = None,
-        reconcile_issue_ids: list[int] | None = None,
-    ) -> dict[str, Any]:
-        payload = {
-            "jql": jql,
-            "maxResults": max_results,
-            "fields": fields or ["summary", "status", "assignee", "description"],
-        }
-        if reconcile_issue_ids:
-            payload["reconcileIssues"] = reconcile_issue_ids
-        return self.request("POST", "/rest/api/3/search/jql", payload)
-
-    def get_issue(self, issue_key: str, fields: list[str] | None = None) -> dict[str, Any]:
-        field_arg = ",".join(fields or ["summary", "status", "assignee", "description"])
-        return self.request("GET", f"/rest/api/3/issue/{quote(issue_key)}?fields={quote(field_arg)}")
+        return super().request(method, path, body, allow_not_found=allow_not_found)
 
     def get_current_user(self) -> dict[str, Any]:
         return self.request("GET", "/rest/api/3/myself")
@@ -215,23 +117,10 @@ class JiraClient:
             {"transition": {"id": transition_id}},
         )
 
-    def get_issue_property(self, issue_key: str, property_key: str) -> Any:
-        result = self.request(
-            "GET",
-            f"/rest/api/3/issue/{quote(issue_key)}/properties/{quote(property_key, safe='')}",
-            allow_not_found=True,
-        )
-        if result is None:
-            return None
-        if not isinstance(result, dict) or "value" not in result:
-            raise SystemExit("Jira issue property response is missing its value.")
-        return result["value"]
-
     def set_issue_property(self, issue_key: str, property_key: str, value: dict[str, Any]) -> None:
         if not self.options.get("allow_transition"):
             raise SystemExit("Completion session property writes require allow_transition=true.")
-        path = f"/rest/api/3/issue/{quote(issue_key)}/properties/{quote(property_key, safe='')}"
-        self.request("PUT", path, value)
+        super().set_issue_property(issue_key, property_key, value)
         if self.dry_run:
             return
         verified = self.get_issue_property(issue_key, property_key)
@@ -241,8 +130,7 @@ class JiraClient:
     def delete_issue_property(self, issue_key: str, property_key: str) -> None:
         if not self.options.get("allow_transition"):
             raise SystemExit("Completion session property writes require allow_transition=true.")
-        path = f"/rest/api/3/issue/{quote(issue_key)}/properties/{quote(property_key, safe='')}"
-        self.request("DELETE", path, allow_not_found=True)
+        super().delete_issue_property(issue_key, property_key)
         if self.dry_run:
             return
         if self.get_issue_property(issue_key, property_key) is not None:

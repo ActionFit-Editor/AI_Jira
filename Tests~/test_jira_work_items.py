@@ -244,6 +244,57 @@ class JiraWorkItemsTests(unittest.TestCase):
             result["items"][0]["url"],
         )
 
+    def test_complete_automatic_queue_reads_every_page(self) -> None:
+        config = {
+            **self.config,
+            "statuses": {
+                **self.config["statuses"],
+                "done_auto": "개발 완료 - 자동 검증 필요",
+                "done_manual": "개발 완료 - 수동 검증 필요",
+                "done_verified": "개발 완료 - 검증 완료",
+            },
+        }
+        api = FakePagedJiraReadApi(
+            {
+                None: {
+                    "issues": [
+                        self._overlap_issue(
+                            "MCC-1",
+                            "개발 완료 - 자동 검증 필요",
+                            "개발자 A",
+                        )
+                    ],
+                    "isLast": False,
+                    "nextPageToken": "page-2",
+                },
+                "page-2": {
+                    "issues": [
+                        self._overlap_issue(
+                            "MCC-2",
+                            "개발 완료 - 자동 검증 필요",
+                            "개발자 A",
+                        )
+                    ],
+                    "isLast": True,
+                },
+            }
+        )
+
+        result = query_work_items(
+            config,
+            state="automatic-validation",
+            max_results=25,
+            api=api,
+            all_pages=True,
+        )
+
+        self.assertTrue(result["complete"])
+        self.assertTrue(result["isLast"])
+        self.assertEqual(2, result["pageCount"])
+        self.assertEqual(["MCC-1", "MCC-2"], [item["key"] for item in result["items"]])
+        self.assertEqual([None, "page-2"], [call[2] for call in api.calls])
+        self.assertEqual(["summary", "status", "updated"], api.calls[0][3])
+
     def test_json_output_preserves_korean(self) -> None:
         result = query_work_items(self.config, api=FakeJiraReadApi())
         output = io.StringIO()

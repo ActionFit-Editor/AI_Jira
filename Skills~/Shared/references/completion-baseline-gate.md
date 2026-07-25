@@ -65,12 +65,44 @@ After the PR exists and repository validation is complete, compare the full seal
 
 Every sealed requirement ID must occur exactly once. Only `complete` is accepted; missing, duplicate, unknown, incomplete, deferred, unverified, or evidence-free entries fail closed. The issue key, session ID, baseline digest, and PR URL must exactly match the active baseline and finalizer arguments. The finalizer persists the validated review and its digest in the Jira property.
 
-Prepend exactly one issue-specific Korean QA completion record containing non-empty `변경 요약`, `검증 결과`, `미검증 항목`, `QA 확인 항목`, and `위험 영역`. `미검증 항목` must be `없음` for done. Then run:
+When all three extended status mappings are configured, also create a versioned verification-plan JSON outside the repository. It pins the candidate PR, sealed branch, and exact 40-character commit SHA and records every remaining or already completed functional check:
+
+```json
+{
+  "version": 1,
+  "issueKey": "MCC-1234",
+  "candidate": {
+    "prUrl": "https://github.com/org/repo/pull/123",
+    "branch": "MCC-1234-task",
+    "commit": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "checks": [
+    {
+      "id": "AUTO-EDITOR-001",
+      "mode": "automatic",
+      "description": "Verify the approved Editor behavior.",
+      "evidenceLevel": "editor-simulated",
+      "status": "pending"
+    },
+    {
+      "id": "MANUAL-UX-001",
+      "mode": "manual",
+      "description": "Review the subjective presentation.",
+      "evidenceLevel": "manual",
+      "status": "pending"
+    }
+  ]
+}
+```
+
+The plan may use `automated`, `editor-simulated`, `remote-assisted`, `player-build`, or `device-verified` for automatic checks and `manual` for manual checks. Player/device levels must occur explicitly in the approved Jira `Validation Plan`. Do not include commands, shell, or script fields. Automatic checks take precedence over manual checks.
+
+Prepend exactly one issue-specific Korean QA completion record containing non-empty `변경 요약`, `검증 결과`, `미검증 항목`, `QA 확인 항목`, and `위험 영역`. In legacy mode, and whenever no verification check remains, `미검증 항목` must be `없음`. In extended mode it names the deferred automatic/manual checks. Then run:
 
 ```bash
 ai_jira_write_cli.py finalize <ISSUE-KEY> --outcome done --pr-url <PR-URL> --review-file <REVIEW-JSON>
 ```
 
-The finalizer also requires progress, an active baseline, an unchanged current requirement digest, matching PR evidence, and structured QA. Direct `transition --to done` applies the same review gate. Remove the temporary review only after the completed Jira property and done status are verified.
+Add `--verification-plan-file <VERIFICATION-PLAN-JSON>` in extended mode. The finalizer also requires progress, an active baseline, an unchanged current requirement digest, matching PR evidence, transition preflight, and structured QA. It selects automatic-validation when any automatic check is pending, manual-validation when only manual checks are pending, or verified when none remain. Legacy mode keeps the configured `done` behavior. Direct `transition --to done` applies the same review gate. Remove temporary review and verification files only after the property and selected status are verified.
 
 If any requirement is not complete, use `finalize --outcome incomplete` with every handoff field. Never describe partial work, a partial PR, or a narrowed implementation as completion.

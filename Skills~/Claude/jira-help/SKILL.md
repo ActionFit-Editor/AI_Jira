@@ -22,12 +22,16 @@ Read-only installed commands:
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state todo --format json
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state progress --format json
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state all --format json
+python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state automatic-validation --format json
+python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state manual-validation --format json
+python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state verified --format json
+python3 .claude/skills/jira-help/scripts/ai_jira_cli.py list --state development-complete --format json
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py overlap --format json
 python3 .claude/skills/jira-help/scripts/ai_jira_cli.py detail MCC-1234 --format json
 ```
 
-- `todo` lists new-work candidates, `progress` lists already-active work, `all` combines both for raw inspection, and `detail` returns one issue's implementation context.
-- `overlap` is read-only and lists every assignee's issues in exactly configured todo, progress, and done across every enhanced-search page for explicit project-wide duplicate-work analysis. It never feeds task recommendation or automatic pickup.
+- `todo` lists new-work candidates, `progress` lists already-active work, `all` combines only those two for raw inspection, and `detail` returns one issue's implementation context. Extended states list automatic-validation, manual-validation, verified, or all development-complete issues and require all three opt-in mappings.
+- `overlap` is read-only and lists every assignee's issues in the configured base lifecycle plus all enabled extended development-complete states across every enhanced-search page for explicit project-wide duplicate-work analysis. It never feeds task recommendation or automatic pickup.
 - Never use `all` as the `jira-todo` candidate source.
 
 Package-owned write commands:
@@ -44,12 +48,15 @@ python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py start MCC-1234 --b
 python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --to done --pr-url "https://github.com/org/repo/pull/123" --review-file completion-review.json
 python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py transition MCC-1234 --list
 python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome done --pr-url "https://github.com/org/repo/pull/123" --review-file completion-review.json
+python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py verify inspect MCC-1234 --json
+python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py verify preflight MCC-1234 --json
+python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py verify finalize MCC-1234 --candidate-commit 0123456789abcdef0123456789abcdef01234567 --result-file verification-result.json --json
 python3 .claude/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
 Explain that normal `create` validates the managed contract. Explicit `--title-only-needs-plan` rejects description arguments and omits the Jira description so the todo is classified as `needs-plan`; it requires an explicit exact-title request or approval and never bypasses normal planning decisions or approval. Both modes resolve exactly one non-subtask Jira type to `issuetype.id` before any create write.
 
-Explain that create validates the managed contract, requires the current active sprint, and verifies assignee, sprint, and todo. Read `references/completion-baseline-gate.md`: planning transitions require `--purpose planning`, replacement requires exact source coverage and separate approval for scope reduction, and every implementation uses `start` to seal a versioned Jira property. Done requires an unchanged active baseline, matching PR, exact completion-review JSON, and all five Korean QA fields; incomplete closes the baseline and returns todo. Legacy progress must finalize incomplete before restart, and a partial PR never narrows the parent issue. `transition --list` is read-only. Also explain the shared decision protocol, retained mixed-language canonical draft, Korean approval view, terminal finalization, non-stealing triage, visible Jira announcement, branch-key verification, credentials, and Codex-only terminal-title boundary. Recommend `--help` for exact installed flags.
+Explain that create validates the managed contract, requires the current active sprint, and verifies assignee, sprint, and todo. Read `references/completion-baseline-gate.md`: planning transitions require `--purpose planning`, replacement requires exact source coverage and separate approval for scope reduction, and every implementation uses `start` to seal a versioned Jira property. Extended finalization also requires a pinned verification plan and selects automatic-validation, manual-validation, or verified; `verify` records one pinned automatic QA result. The three extended mappings are all-or-none, partial or duplicate mappings fail closed, and absent mappings preserve legacy behavior. Incomplete closes the baseline and returns todo. Legacy progress must finalize incomplete before restart, and a partial PR never narrows the parent issue. `transition --list` and `verify inspect/preflight` are read-only. Also explain the shared decision protocol, retained mixed-language canonical draft, Korean approval view, terminal finalization, non-stealing triage, visible Jira announcement, branch-key verification, credentials, and Codex-only terminal-title boundary. Recommend `--help` for exact installed flags.
 
 Name `allow_description_append` and `allow_transition` as incomplete-finalization gates. Explain that `jira-run` and `jira-auto-start` announce `🎫 Jira: <ISSUE-KEY>` before writes. For Codex terminal-title help, show `terminal_title = ["spinner", "git-branch", "project"]`, and explicitly state that key-only extraction and raw OSC output are unsupported.
 

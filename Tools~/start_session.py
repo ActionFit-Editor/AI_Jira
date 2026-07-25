@@ -17,6 +17,7 @@ from jira_completion import (
     with_state,
 )
 from jira_description import parse_description_contract
+from jira_statuses import has_extended_lifecycle, ordinary_done_statuses
 from transition_issue import find_transition
 
 
@@ -45,19 +46,41 @@ def restore_property(client, issue_key: str, previous: dict | None) -> str:
         return f"property restore failed: {error}"
 
 
-def require_prerequisites_done(client, issue_key: str, description: str, done_status: str) -> None:
+def require_prerequisites_done(
+    client,
+    issue_key: str,
+    description: str,
+    statuses: dict[str, str],
+) -> None:
     contract = parse_description_contract(description)
-    for prerequisite in contract["autoStart"]["prerequisiteKeys"]:
+    prerequisites = contract["autoStart"].get("prerequisiteRequirements") or [
+        {"key": key, "requiresVerified": False}
+        for key in contract["autoStart"]["prerequisiteKeys"]
+    ]
+    accepted_done = ordinary_done_statuses(statuses)
+    for requirement in prerequisites:
+        prerequisite = requirement["key"]
         if prerequisite.upper() == issue_key.upper():
             raise SystemExit("A Jira issue cannot list itself as an implementation prerequisite.")
         issue = client.get_issue(prerequisite, fields=["status", "resolution"])
         prerequisite_fields = issue.get("fields", {})
         observed = str((prerequisite_fields.get("status") or {}).get("name", ""))
         resolution = prerequisite_fields.get("resolution")
-        if observed != done_status and not resolution:
+        if requirement["requiresVerified"]:
+            if not has_extended_lifecycle(statuses):
+                raise SystemExit(
+                    f"Implementation prerequisite {prerequisite} requires verified evidence, "
+                    "but the extended verification lifecycle is not configured."
+                )
+            if observed != statuses["done_verified"]:
+                raise SystemExit(
+                    f"Implementation prerequisite {prerequisite} is not verified: "
+                    f"expected={statuses['done_verified']}, observed={observed or '(missing)'}."
+                )
+        elif observed not in accepted_done and not resolution:
             raise SystemExit(
                 f"Implementation prerequisite {prerequisite} is not done: "
-                f"expected={done_status}, observed={observed or '(missing)'}."
+                f"expected one of {sorted(accepted_done)}, observed={observed or '(missing)'}."
             )
 
 
@@ -105,7 +128,7 @@ def start_session(
     fields = issue.get("fields") or {}
     status = str((fields.get("status") or {}).get("name", ""))
     description = adf_to_text(fields.get("description"))
-    require_prerequisites_done(client, issue_key, description, statuses["done"])
+    require_prerequisites_done(client, issue_key, description, statuses)
 
     previous = client.get_issue_property(issue_key, COMPLETION_PROPERTY_KEY)
     if previous is not None:

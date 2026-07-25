@@ -14,6 +14,7 @@ COMMAND_SCRIPTS = {
     "transition": "transition_issue.py",
     "start": "start_session.py",
     "finalize": "finalize_session.py",
+    "verify": "verify_session.py",
 }
 
 

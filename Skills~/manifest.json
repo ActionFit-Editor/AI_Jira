@@ -34,6 +34,12 @@
       "access": "write-capable"
     },
     {
+      "name": "jira-auto-verify",
+      "agents": ["codex", "claude"],
+      "includeShared": true,
+      "access": "write-capable"
+    },
+    {
       "name": "jira-run",
       "agents": ["codex", "claude"],
       "includeShared": true,

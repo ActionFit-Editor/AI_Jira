@@ -21,6 +21,11 @@ from jira_completion import (
     with_state,
 )
 from jira_description import validate_qa_completion_record
+from jira_statuses import has_extended_lifecycle
+from jira_verification import (
+    development_complete_target,
+    validate_verification_plan,
+)
 
 
 def find_transition(transitions: list[dict], target_status_name: str) -> dict | None:
@@ -66,6 +71,24 @@ def transition_and_verify(client, issue_key: str, target_status: str) -> None:
         raise SystemExit(
             f'{issue_key} transition verification failed: expected "{target_status}", '
             f'observed "{observed or "(missing)"}".'
+        )
+
+
+def require_transition_targets(
+    client,
+    issue_key: str,
+    target_statuses: list[str] | tuple[str, ...],
+) -> None:
+    transitions = client.list_transitions(issue_key)
+    missing = [
+        target
+        for target in target_statuses
+        if find_transition(transitions, target) is None
+    ]
+    if missing:
+        raise SystemExit(
+            "Jira transition preflight is missing configured destination(s): "
+            + ", ".join(missing)
         )
 
 
@@ -192,9 +215,11 @@ def complete_issue(
     statuses: dict[str, str],
     pr_url: str | None,
     review: dict,
+    verification_plan: dict | None = None,
 ) -> dict:
     issue = client.get_issue(issue_key, fields=["status", "description"])
     property_value = client.get_issue_property(issue_key, COMPLETION_PROPERTY_KEY)
+    extended = has_extended_lifecycle(statuses)
     active = validate_completion_gate(
         issue_key,
         issue,
@@ -202,17 +227,82 @@ def complete_issue(
         property_value,
         review,
         pr_url,
+        allow_pending_validation=extended,
     )
+    target_status = statuses["done"]
+    property_state = "completed"
+    normalized_verification = None
+    if extended:
+        if verification_plan is None:
+            raise SystemExit(
+                "Extended lifecycle completion requires --verification-plan-file."
+            )
+        normalized_verification = validate_verification_plan(
+            verification_plan,
+            issue_key=issue_key,
+            session=active,
+            pr_url=str(pr_url),
+            description=adf_to_text((issue.get("fields") or {}).get("description")),
+        )
+        target_status, property_state = development_complete_target(
+            statuses, normalized_verification
+        )
+        if property_state == "completed":
+            qa_errors = validate_qa_completion_record(
+                adf_to_text((issue.get("fields") or {}).get("description")),
+                issue_key,
+            )
+            if qa_errors:
+                raise SystemExit(
+                    "Verified completion requires no unverified QA items: "
+                    + "; ".join(qa_errors)
+                )
+        else:
+            qa_errors = validate_qa_completion_record(
+                adf_to_text((issue.get("fields") or {}).get("description")),
+                issue_key,
+                require_no_unverified=False,
+                require_pending_unverified=True,
+            )
+            if qa_errors:
+                raise SystemExit(
+                    "Deferred completion requires pending QA items: "
+                    + "; ".join(qa_errors)
+                )
+        require_transition_targets(
+            client,
+            issue_key,
+            [
+                statuses["done_auto"],
+                statuses["done_manual"],
+                statuses["done_verified"],
+            ],
+        )
+    else:
+        if verification_plan is not None:
+            raise SystemExit(
+                "Verification plans require the complete extended lifecycle status mappings."
+            )
+        require_transition_targets(client, issue_key, [target_status])
+
     review_digest = "sha256:" + hashlib.sha256(
         json.dumps(review, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
     ).hexdigest()
+    completion_fields = {
+        "developmentCompletedAt": utc_timestamp(),
+        "prUrl": pr_url,
+        "reviewDigest": review_digest,
+        "review": review,
+        "developmentCompleteStatus": target_status,
+    }
+    if property_state == "completed":
+        completion_fields["completedAt"] = completion_fields["developmentCompletedAt"]
+    if normalized_verification is not None:
+        completion_fields["verification"] = normalized_verification
     completed = with_state(
         active,
-        "completed",
-        completedAt=utc_timestamp(),
-        prUrl=pr_url,
-        reviewDigest=review_digest,
-        review=review,
+        property_state,
+        **completion_fields,
     )
     try:
         client.set_issue_property(issue_key, COMPLETION_PROPERTY_KEY, completed)
@@ -222,8 +312,19 @@ def complete_issue(
             f"Completion property preparation failed; {recovery}. Cause: {error}"
         ) from error
     try:
-        transition_and_verify(client, issue_key, statuses["done"])
+        transition_and_verify(client, issue_key, target_status)
     except SystemExit as error:
+        try:
+            observed_issue = client.get_issue(issue_key, fields=["status"])
+            observed = str(
+                (
+                    (observed_issue.get("fields") or {}).get("status") or {}
+                ).get("name", "")
+            )
+            if observed == target_status:
+                return completed
+        except SystemExit:
+            pass
         try:
             client.set_issue_property(issue_key, COMPLETION_PROPERTY_KEY, active)
         except SystemExit as property_error:
@@ -243,6 +344,10 @@ def main() -> None:
     parser.add_argument("--to", choices=["todo", "progress", "done"], help="Internal target state.")
     parser.add_argument("--pr-url", help="Required when moving to done after PR creation.")
     parser.add_argument("--review-file", help="Required completion-review JSON when moving to done.")
+    parser.add_argument(
+        "--verification-plan-file",
+        help="Required versioned deferred-validation plan when the extended lifecycle is enabled.",
+    )
     parser.add_argument(
         "--purpose",
         choices=["planning"],
@@ -267,11 +372,23 @@ def main() -> None:
         if not args.review_file:
             raise SystemExit("Transition to done requires --review-file.")
         review = read_json_file(args.review_file, "completion review")
-        result = complete_issue(client, args.issue_key, statuses, args.pr_url, review)
+        verification_plan = (
+            read_json_file(args.verification_plan_file, "verification plan")
+            if args.verification_plan_file
+            else None
+        )
+        result = complete_issue(
+            client,
+            args.issue_key,
+            statuses,
+            args.pr_url,
+            review,
+            verification_plan,
+        )
         if args.json:
             print(json.dumps(result, ensure_ascii=False, indent=2))
         else:
-            print(f'{args.issue_key} -> {statuses["done"]}')
+            print(f'{args.issue_key} -> {result["developmentCompleteStatus"]}')
         return
     if args.purpose != "planning":
         raise SystemExit(

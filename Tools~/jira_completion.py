@@ -33,6 +33,7 @@ REQUIREMENT_HEADINGS = (
 )
 TERMINAL_PROPERTY_STATES = {
     "completed",
+    "closed-defect",
     "closed-incomplete",
     "planned",
 }
@@ -394,6 +395,8 @@ def validate_completion_gate(
     property_value: Any,
     review: dict[str, Any],
     pr_url: str | None,
+    *,
+    allow_pending_validation: bool = False,
 ) -> dict[str, Any]:
     parsed = urlparse(pr_url or "")
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
@@ -420,7 +423,11 @@ def validate_completion_gate(
         raise SystemExit(
             "Jira requirements changed after implementation start. Finalize incomplete and restart from the approved plan."
         )
-    qa_errors = validate_qa_completion_record(description, issue_key)
+    qa_errors = validate_qa_completion_record(
+        description,
+        issue_key,
+        require_no_unverified=not allow_pending_validation,
+    )
     if qa_errors:
         raise SystemExit("Korean QA completion record is incomplete: " + "; ".join(qa_errors))
     validate_completion_review(issue_key, session, review, str(pr_url))

@@ -30,10 +30,28 @@ class JiraActionSkillTests(unittest.TestCase):
         manifest = json.loads((PACKAGE_ROOT / "Skills~" / "manifest.json").read_text(encoding="utf-8"))
         by_name = {skill["name"]: skill for skill in manifest["skills"]}
 
-        for name in ("jira-plan", "jira-auto-start", "jira-run"):
+        for name in ("jira-plan", "jira-auto-start", "jira-auto-verify", "jira-run"):
             self.assertEqual("write-capable", by_name[name]["access"])
             self.assertEqual({"codex", "claude"}, set(by_name[name]["agents"]))
             self.assertTrue(by_name[name]["includeShared"])
+
+    def test_auto_verify_skill_requires_complete_sequential_pinned_queue(self) -> None:
+        for agent in ("Codex", "Claude"):
+            contents = self._read_skill(agent, "jira-auto-verify")
+            lower = contents.lower()
+
+            self.assertIn("--all-pages", contents)
+            self.assertIn("complete=true", contents)
+            self.assertIn("user-selected", lower)
+            self.assertIn("another assignee", lower)
+            self.assertIn("sequential", lower)
+            self.assertIn("candidate-commit", contents)
+            self.assertIn("stale-candidate", contents)
+            self.assertIn("related-defect", contents)
+            self.assertIn("done_manual" if agent == "Codex" else "manual", contents)
+            self.assertIn("done_verified" if agent == "Codex" else "verified", contents)
+            self.assertTrue("do not" in lower or "never" in lower)
+            self.assertIn("product code", lower)
 
     def test_shared_korean_approval_reference_owns_dual_representation_contract(self) -> None:
         contents = APPROVAL_REFERENCE.read_text(encoding="utf-8")
@@ -121,7 +139,7 @@ class JiraActionSkillTests(unittest.TestCase):
 
         self.assertIn("Do not add a new top-level managed heading or schema field", contents)
         package = json.loads((PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual("0.1.1", package["dependencies"]["com.actionfit.ai-workagent"])
+        self.assertEqual("0.2.0", package["dependencies"]["com.actionfit.ai-workagent"])
 
     def test_planning_and_execution_skills_apply_risk_validation_reference(self) -> None:
         for agent in ("Codex", "Claude"):
@@ -255,7 +273,7 @@ class JiraActionSkillTests(unittest.TestCase):
             contents = self._read_skill(agent, "jira-auto-start")
 
             self.assertIn(
-                f"python3 {helper}/skills/jira-auto-start/scripts/ai_jira_cli.py list --state todo --format json",
+                f"python3 {helper}/skills/jira-auto-start/scripts/ai_jira_cli.py classify --state todo",
                 contents,
             )
             self.assertIn(
@@ -496,6 +514,17 @@ class JiraActionSkillTests(unittest.TestCase):
 
             self.assertIn("allow_implicit_invocation: true", metadata)
             self.assertIn("material decision", metadata)
+
+        auto_verify_metadata = (
+            PACKAGE_ROOT
+            / "Skills~"
+            / "Codex"
+            / "jira-auto-verify"
+            / "agents"
+            / "openai.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("allow_implicit_invocation: true", auto_verify_metadata)
+        self.assertIn("pinned candidates", auto_verify_metadata)
 
     def test_claude_write_skills_disable_model_invocation(self) -> None:
         for name in ("jira-plan", "jira-auto-start", "jira-run"):

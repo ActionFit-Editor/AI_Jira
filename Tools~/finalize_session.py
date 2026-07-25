@@ -61,8 +61,16 @@ def finalize_done(
     statuses: dict[str, str],
     pr_url: str | None,
     review: dict,
-) -> None:
-    complete_issue(client, issue_key, statuses, pr_url, review)
+    verification_plan: dict | None = None,
+) -> dict:
+    return complete_issue(
+        client,
+        issue_key,
+        statuses,
+        pr_url,
+        review,
+        verification_plan,
+    )
 
 
 def finalize_incomplete(
@@ -180,6 +188,10 @@ def main() -> None:
     parser.add_argument("--outcome", choices=["done", "incomplete"], required=True)
     parser.add_argument("--pr-url", help="Required for done finalization.")
     parser.add_argument("--review-file", help="Required completion-review JSON for done finalization.")
+    parser.add_argument(
+        "--verification-plan-file",
+        help="Required deferred-validation plan when extended lifecycle statuses are configured.",
+    )
     parser.add_argument("--date", default=date.today().isoformat(), help="Handoff date (YYYY-MM-DD).")
     parser.add_argument("--completed-work")
     parser.add_argument("--remaining-work")
@@ -198,14 +210,22 @@ def main() -> None:
     if args.outcome == "done":
         if not args.review_file:
             raise SystemExit("Done finalization requires --review-file.")
-        finalize_done(
+        result = finalize_done(
             client,
             args.issue_key,
             statuses,
             args.pr_url,
             read_json_file(args.review_file, "completion review"),
+            (
+                read_json_file(args.verification_plan_file, "verification plan")
+                if args.verification_plan_file
+                else None
+            ),
         )
-        print(f'{args.issue_key} session finalized -> {statuses["done"]}')
+        print(
+            f'{args.issue_key} session finalized -> '
+            f'{result["developmentCompleteStatus"]}'
+        )
         return
 
     require_incomplete_arguments(args)

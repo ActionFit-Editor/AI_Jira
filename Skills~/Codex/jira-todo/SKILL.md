@@ -20,6 +20,7 @@ Use this skill for Jira triage and work recommendations only. It is strictly rea
 
 - Only issues returned by the `todo` query may appear as actionable or recommended new work.
 - Issues returned by the `progress` query must be reported only as already active, excluded, overlapping, or dependency context.
+- Automatic-validation, manual-validation, verified, and legacy done issues are development-complete and must never be returned to the todo recommendation queue. Use `$jira-auto-verify` only when the user explicitly requests the automatic QA queue.
 - Apply deterministic precedence: `active` when an open PR, dirty worktree, Unity process, or equivalent current-work evidence exists; otherwise `reserved` when a matching lease exists, regardless of whether its acquisition PID still exists; otherwise `stranded-review` when only merged/closed PRs or no active work evidence remains.
 - An existing branch, worktree, or pull request for a progress issue confirms that it should be excluded; it is not a reason to recommend continuing that issue.
 - Never expire, release, steal, or call a lease stale from PID liveness. Stranded-review is a recovery report, not automatic mutation authority.

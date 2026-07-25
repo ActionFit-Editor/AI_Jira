@@ -176,7 +176,13 @@ def issue_type_page(*issue_types: dict, total: int | None = None, start_at: int 
 class ProjectJiraWriteToolTests(unittest.TestCase):
     def test_project_lifecycle_entry_points_delegate_to_package_tools(self) -> None:
         project_root = PACKAGE_ROOT.parents[1]
-        for name in ("transition_issue.py", "update_description.py", "start_session.py", "finalize_session.py"):
+        for name in (
+            "transition_issue.py",
+            "update_description.py",
+            "start_session.py",
+            "finalize_session.py",
+            "verify_session.py",
+        ):
             with self.subTest(name=name):
                 contents = (project_root / "Tools" / "AI" / "jira" / name).read_text(
                     encoding="utf-8"
