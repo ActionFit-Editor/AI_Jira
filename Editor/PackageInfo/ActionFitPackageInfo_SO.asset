@@ -20,5 +20,14 @@ MonoBehaviour:
   _status: verified
   _description: ActionFit AI agents use this package for Jira planning, work discovery,
     automatic bounded task pickup, lifecycle guidance, and safe automation.
-  _releaseNote: "- `reclassify-legacy`\uac00 \uad6c\ud604 \uc644\ub8cc\ub41c \uae30\uc874 todo \ud55c \uac74\uc744 \uc790\ub3d9 \ub610\ub294 \uc218\ub3d9 \uac80\uc99d \ub300\uae30\ub85c \uc548\uc804\ud558\uac8c \uc7ac\ubd84\ub958\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n- `inspect`\uc640 `preflight`\ub294 Jira\ub97c \ubcc0\uacbd\ud558\uc9c0 \uc54a\uace0 \uc694\uad6c\uc0ac\ud56d coverage, candidate, QA, transition, property \ud06c\uae30\uc640 write gate \ucc28\ub2e8 \uc0ac\uc720\ub97c \ud655\uc778\ud569\ub2c8\ub2e4.\n- `apply`\ub294 description, completion property, status\ub97c \ub2e8\uacc4\ubcc4 \uac80\uc99d\ud558\uace0 \uc2e4\ud328 \uc2dc \uc5ed\uc21c \ubcf4\uc0c1 \ubcf5\uad6c\ud558\uba70, `rollback`\uc740 \ubcc0\uacbd\ub418\uc9c0 \uc54a\uc740 \ub3d9\uc77c migration\ub9cc \ubcf5\uc6d0\ud569\ub2c8\ub2e4.\n- bulk migration, verified \uc9c1\uc811 \uc774\ub3d9, package publish, tag\uc640 catalog \ubcc0\uacbd\uc740 \ud3ec\ud568\ud558\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.\n- package.json\uc758 ActionFit dependency\ub97c \ucd5c\uc2e0 \uc900\ube44 \ubc84\uc804\uc73c\ub85c \uac31\uc2e0\ud588\uc2b5\ub2c8\ub2e4: com.actionfit.ai-workagent 0.2.0 -> 0.2.1, com.actionfit.custompackagemanager 2.0.0 -> 2.0.1."
-  _dependenciesOverride: com.actionfit.ai-jira.core@0.1.0;com.actionfit.ai-workagent@0.2.0;com.actionfit.custompackagemanager@2.0.0
+  _releaseNote: "- package.json\uC758 ActionFit dependency\uB97C \uCD5C\uC2E0 \uC900\uBE44
+    \uBC84\uC804\uC73C\uB85C \uAC31\uC2E0\uD588\uC2B5\uB2C8\uB2E4: com.actionfit.ai-workagent
+    0.2.1 -> 0.2.2.\n- PackageInfo \uCE74\uD0C8\uB85C\uADF8 dependency override\uB97C
+    package.json\uACFC \uC77C\uCE58\uC2DC\uCF30\uC2B5\uB2C8\uB2E4: com.actionfit.custompackagemanager
+    2.0.0 -> 2.0.1.\n- dependency \uBCC0\uACBD\uACFC \uD568\uAED8 package version,
+    README Git UPM tag, AI_GUIDE.md version\uC744 \uC815\uB82C\uD574 publish \uC804
+    contract \uAC80\uC99D\uC774 \uAC00\uB2A5\uD558\uB3C4\uB85D \uD588\uC2B5\uB2C8\uB2E4.\n-
+    \uAE30\uC874 runtime/editor API \uAD6C\uD604\uC740 \uBCC0\uACBD\uD558\uC9C0 \uC54A\uC558\uC73C\uBA70
+    \uC2E4\uC81C publish\uB294 \uBCC4\uB3C4 \uC2B9\uC778\uC744 \uAC70\uCCD0 Custom
+    Package Manager\uC5D0\uC11C \uC218\uD589\uD569\uB2C8\uB2E4."
+  _dependenciesOverride: com.actionfit.ai-jira.core@0.1.0;com.actionfit.ai-workagent@0.2.2;com.actionfit.custompackagemanager@2.0.1

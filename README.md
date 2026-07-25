@@ -13,7 +13,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.3"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.4"
   }
 }
 ```
@@ -73,7 +73,7 @@ Planning-only 및 read-only 흐름은 응답에 관련 Jira key를 표시하지�
 
 Managed state는 Git에서 제외된 project-local `UserSettings/ActionFitPackageManager/skill-install-state.json`에 저장합니다. 누락된 managed target은 복원하고 패키지 콘텐츠 변경 시 변경되지 않은 managed target을 refresh합니다. 기존 unmanaged target과 사용자가 수정한 managed target은 경고와 함께 보존합니다. 자동 설치는 user home/global skill 디렉터리에 쓰거나 skill을 삭제하지 않으며 Unity batch mode에서 건너뜁니다. 명시적 제거는 변경되지 않은 managed target만 삭제하고 install/refresh 명령을 다시 사용할 때까지 자동 재생성을 비활성화합니다.
 
-기존 `UserSettings/AIJira/skill-install-state.json`은 migration 입력으로 제자리에 유지합니다. Custom Package Manager는 현재 hash가 기록된 installed hash와 여전히 일치할 때만 legacy target을 인수하고 이전에 비활성화한 자동 설치 설정도 보존합니다. AI Jira는 Jira Core `0.1.0`, WorkAgent `0.2.0`, Custom Package Manager `2.0.0`에 직접 의존합니다. Core는 config/auth/REST/JQL/ADF와 issue-property primitive만 소유하고 facade는 기존 skill 이름, CLI, write gate, planning/session/verification 의미를 유지합니다.
+기존 `UserSettings/AIJira/skill-install-state.json`은 migration 입력으로 제자리에 유지합니다. Custom Package Manager는 현재 hash가 기록된 installed hash와 여전히 일치할 때만 legacy target을 인수하고 이전에 비활성화한 자동 설치 설정도 보존합니다. AI Jira는 Jira Core `0.1.0`, WorkAgent `0.2.2`, Custom Package Manager `2.0.1`에 직접 의존합니다. Core는 config/auth/REST/JQL/ADF와 issue-property primitive만 소유하고 facade는 기존 skill 이름, CLI, write gate, planning/session/verification 의미를 유지합니다.
 
 ## AI 가이드
 

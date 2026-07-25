@@ -7,7 +7,7 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `2.0.3`
+- Current package version at generation time: `2.0.4`
 - Unity version: `6000.2`
 
 ## Purpose
@@ -101,7 +101,7 @@ Read this file when:
 - Package skill sources live under `Skills~/Codex` and `Skills~/Claude` and use schema v2 `Skills~/manifest.json` with `skillPrefix: jira`, mandatory `helpSkill: jira-help`, and explicit `access`. `jira-setup` owns secret-free ignored local-config initialization and read-only connection verification. Shared references own decision collaboration, dual-representation approval, the completion baseline gate, and WorkAgent-backed risk-proportional Jira validation for both agents. Custom Package Manager copies registered sources to project-local `.agents/skills` and `.claude/skills`, overlays shared files from `Skills~/Shared`, and generates the managed `PACKAGE_SKILLS.md` only inside installed `jira-help` targets.
 - `jira-help` and `jira-todo` must remain read-only. `jira-setup`, `jira-plan`, `jira-auto-start`, `jira-auto-verify`, and `jira-run` are write-capable and remain available in the default Codex context through `allow_implicit_invocation: true`; context availability never replaces explicit user authorization, `dry_run`, action-specific `allow_*` gates, or lifecycle validation. Claude keeps `disable-model-invocation: true`.
 - `jira-setup` may create only a missing, regular, Git-ignored project config after showing an exact secret-free plan and obtaining approval. It must use environment-variable references for credentials, keep `dry_run` and every `allow_*` gate disabled, refuse tracked/unignored/existing targets, and verify with read-only package commands. It never reads or prints token values, modifies shell profiles, enables Jira writes, or overwrites/deletes local config.
-- AI Jira depends directly on `com.actionfit.ai-jira.core` `0.1.0`, `com.actionfit.ai-workagent` `0.2.0`, and `com.actionfit.custompackagemanager` `2.0.0`. Core never owns skills or workflow semantics. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
+- AI Jira depends directly on `com.actionfit.ai-jira.core` `0.1.0`, `com.actionfit.ai-workagent` `0.2.2`, and `com.actionfit.custompackagemanager` `2.0.1`. Core never owns skills or workflow semantics. Do not restore an AI Jira automatic bootstrap or a second package-specific menu writer.
 - Skill installation must never write to home/global directories, copy credentials, overwrite unknown or modified targets, or delete targets automatically. New managed hashes belong in `UserSettings/ActionFitPackageManager/skill-install-state.json`; the preserved `UserSettings/AIJira/skill-install-state.json` is migration input only.
 - Package refresh may update only a target whose current directory hash matches the recorded installed hash. Explicit removal may delete only the same unchanged targets and must preserve modified or linked directories.
 

@@ -139,7 +139,7 @@ class JiraActionSkillTests(unittest.TestCase):
 
         self.assertIn("Do not add a new top-level managed heading or schema field", contents)
         package = json.loads((PACKAGE_ROOT / "package.json").read_text(encoding="utf-8"))
-        self.assertEqual("0.2.0", package["dependencies"]["com.actionfit.ai-workagent"])
+        self.assertEqual("0.2.2", package["dependencies"]["com.actionfit.ai-workagent"])
 
     def test_planning_and_execution_skills_apply_risk_validation_reference(self) -> None:
         for agent in ("Codex", "Claude"):
