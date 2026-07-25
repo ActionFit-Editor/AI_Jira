@@ -398,6 +398,18 @@ class JiraActionSkillTests(unittest.TestCase):
                 self.assertIn("merged or closed pr branch", lower)
                 self.assertIn("active lease", lower)
 
+    def test_run_and_auto_verify_preserve_legacy_reclassification_boundary(self) -> None:
+        for agent in ("Codex", "Claude"):
+            run = self._read_skill(agent, "jira-run")
+            auto_verify = self._read_skill(agent, "jira-auto-verify")
+
+            self.assertIn("reclassify-legacy inspect", run)
+            self.assertIn("preflight", run)
+            self.assertIn("apply", run)
+            self.assertIn("Never discover", run)
+            self.assertIn("reclassify-legacy", auto_verify)
+            self.assertIn("never invokes", auto_verify)
+
     def test_auto_start_reports_progress_recovery_evidence_without_lease_stealing(self) -> None:
         for agent in ("Codex", "Claude"):
             contents = self._read_skill(agent, "jira-auto-start")

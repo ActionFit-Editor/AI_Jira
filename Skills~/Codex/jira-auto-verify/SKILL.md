@@ -12,7 +12,7 @@ Use this write-capable skill only after the user explicitly requests an automati
 1. Read the repository entry points, Jira, WorkAgent, worktree, Unity validation, and operational safety guidance.
 2. When the user supplies exact issue keys, read those keys in order. Otherwise run `python3 .agents/skills/jira-auto-verify/scripts/ai_jira_cli.py list --state automatic-validation --all-pages --format json`, require `complete=true`, and use the complete returned current-user queue order.
 3. Require every issue to belong to the configured project and report `verificationState.state=automatic-validation`. An exact user-selected key may have another assignee; the implicit queue may not.
-4. Run `verify inspect <ISSUE-KEY> --json` to read the versioned verification plan and pinned PR, branch, commit, pending automatic checks, and remaining manual checks. Do not infer a legacy issue as an automatic-validation candidate.
+4. Run `verify inspect <ISSUE-KEY> --json` to read the versioned verification plan and pinned PR, branch, commit, pending automatic checks, and remaining manual checks. Do not infer a legacy issue as an automatic-validation candidate. An implementation-complete legacy todo must first use the separately approved single-issue `reclassify-legacy inspect`, `preflight`, and `apply` workflow; this skill never invokes that migration.
 5. Before worktree preparation or a Jira write for each issue, announce the exact standalone user-visible line `🎫 Jira: <ISSUE-KEY>`.
 
 ## Validate One Candidate
@@ -71,6 +71,7 @@ Re-read the issue after each write, remove the temporary result only after verif
 ## Boundaries
 
 - Do not take work from todo/progress/manual/verified as an automatic-validation candidate.
+- Do not create legacy review, QA, or verification artifacts and do not call `reclassify-legacy`; report that the exact todo requires the supported reclassification workflow instead.
 - Do not edit the verification plan, implementation baseline, issue requirements, or production code during QA.
 - Do not bypass dry-run or `allow_transition`, call Jira directly, guess missing evidence, or mark manual QA passed.
 - Stop the affected issue on a partial Jira failure and report its exact property/status state before processing another issue.

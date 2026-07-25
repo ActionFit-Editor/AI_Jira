@@ -13,7 +13,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.1"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.3"
   }
 }
 ```
@@ -91,7 +91,7 @@ python3 Packages/com.actionfit.ai-jira/Tools~/list_overlap_work_items.py --forma
 python3 Packages/com.actionfit.ai-jira/Tools~/get_work_item.py MCC-1234 --format json
 ```
 
-쓰기 가능한 skill은 설치된 agent 경로의 locator를 호출합니다. `create`, `update-description`, `transition`, `start`, `finalize`, `verify`가 package-owned `Tools~` 구현으로 전달되며 embedded와 PackageCache 설치를 모두 지원합니다.
+쓰기 가능한 skill은 설치된 agent 경로의 locator를 호출합니다. `create`, `update-description`, `transition`, `start`, `finalize`, `verify`, `reclassify-legacy`가 package-owned `Tools~` 구현으로 전달되며 embedded와 PackageCache 설치를 모두 지원합니다.
 
 ```bash
 python3 .agents/skills/jira-plan/scripts/ai_jira_write_cli.py create --help
@@ -100,6 +100,7 @@ python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py update-description 
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py transition --help
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py start --help
 python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py finalize --help
+python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py reclassify-legacy --help
 python3 .agents/skills/jira-auto-verify/scripts/ai_jira_cli.py list --state automatic-validation --all-pages --format json
 python3 .agents/skills/jira-auto-verify/scripts/ai_jira_write_cli.py verify --help
 ```
@@ -225,6 +226,35 @@ Jira 관리자는 활성화 전에 exact status와 다음 destination edge를 �
 - 기존 `QA 진행 중` -> `개발 완료 - 수동 검증 필요`
 - legacy issue를 `개발 완료 - 자동 검증 필요`로 추측하지 않음
 
+### 구현 완료 legacy todo 단일 재분류
+
+일반 개발 session을 거치지 않았거나 이전 incomplete session 이후 실제 구현이 이미 완료된 todo는 status만 직접 변경하지 않습니다. 명시적으로 선택한 이슈 한 건에 대해 `reclassify-legacy`가 현재 Jira snapshot, 전체 managed requirement coverage, 고정된 PR·branch·40자리 commit, 구체적인 구현·검증 evidence, pending verification plan과 다섯 필드 한국어 QA 기록을 검증합니다.
+
+```bash
+python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py reclassify-legacy inspect MCC-1234 \
+  --expected-updated "<JIRA-UPDATED>" \
+  --review-file legacy-review.json \
+  --verification-plan-file verification-plan.json \
+  --qa-file qa.json --json
+python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py reclassify-legacy preflight MCC-1234 \
+  --expected-updated "<JIRA-UPDATED>" \
+  --review-file legacy-review.json \
+  --verification-plan-file verification-plan.json \
+  --qa-file qa.json --json
+python3 .agents/skills/jira-run/scripts/ai_jira_write_cli.py reclassify-legacy apply MCC-1234 \
+  --expected-updated "<JIRA-UPDATED>" \
+  --review-file legacy-review.json \
+  --verification-plan-file verification-plan.json \
+  --qa-file qa.json --json
+```
+
+- `inspect`와 `preflight`는 read-only이며 예상 target과 구조화된 차단 사유를 출력합니다. `preflight`는 `dry_run=false`, `allow_transition=true`, `allow_description_prepend_qa=true`도 요구합니다.
+- `apply`는 dedicated migration property, QA description, completion property, derived automatic/manual status 순서로 쓰고 각 단계에서 read-after-write를 확인합니다. 오류가 발생하면 status, completion property, description을 역순으로 복원한 후 안전할 때만 migration property를 제거합니다.
+- verification plan에 pending automatic check가 하나라도 있으면 automatic-validation, pending check가 모두 manual이면 manual-validation을 선택합니다. pending check가 없거나 verified를 선택하려는 입력은 거부합니다.
+- 명령은 todo를 탐색하지 않고 정확히 한 key만 받으며 configured project, authenticated assignee, unresolved todo, exact `updated`, terminal/absent completion property, 비어 있는 migration property와 필요한 transition을 요구합니다.
+- 성공한 동일 migration 재시도는 현재 status, description, completion property가 정확히 일치할 때만 idempotent하게 성공합니다. `rollback`은 migration ID와 현재 `updated`를 요구하고 이후 Jira 편집이 전혀 없는 동일 snapshot만 todo로 복원합니다.
+- review, verification plan, QA artifact는 repository 밖의 임시 UTF-8 JSON으로 준비합니다. Jira text에서 command, shell 또는 script를 실행하지 않습니다.
+
 `done_auto` issue에는 completion property의 versioned verification plan이 있어야 합니다. Candidate는 exact PR, sealed branch와 40자리 commit SHA로 고정됩니다. Check에는 ID, automatic/manual mode, 설명, evidence level, 상태, 결과 evidence와 timestamp가 저장되며 `command`, `shell`, `script` 같은 실행 text는 허용하지 않습니다.
 
 ```bash
@@ -326,6 +356,13 @@ Finalizer는 active baseline과 현재 요구사항 digest가 같은지 확인�
 
 - Project-local secret과 board mapping은 패키지 밖의 Git 제외 local config 파일에 유지해야 합니다.
 - 기존 프로젝트 경로의 compatibility entry point는 제거하지 않으며 package-owned 구현을 호출하는 wrapper 또는 기존 호환 구현으로 계속 동작해야 합니다.
+
+## 2.0.2 변경 사항
+
+- 구현 완료 legacy todo 한 건을 automatic-validation 또는 manual-validation으로 재분류하는 `reclassify-legacy` workflow를 추가했습니다.
+- exact requirement coverage, candidate, pending verification, 한국어 QA, property 크기, assignee/project/status/transition/write gate를 fail-closed로 검증합니다.
+- 단계별 read-after-write, apply 보상 복구, 변경되지 않은 동일 migration 전용 rollback과 idempotent retry를 추가했습니다.
+- bulk migration, verified 직접 이동, publish, tag와 catalog 변경은 포함하지 않았습니다.
 
 ## 2.0.1 변경 사항
 

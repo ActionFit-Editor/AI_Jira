@@ -15,6 +15,7 @@ COMMAND_SCRIPTS = {
     "start": "start_session.py",
     "finalize": "finalize_session.py",
     "verify": "verify_session.py",
+    "reclassify-legacy": "reclassify_legacy.py",
 }
 
 

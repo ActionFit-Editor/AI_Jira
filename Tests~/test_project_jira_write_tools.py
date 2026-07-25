@@ -182,6 +182,7 @@ class ProjectJiraWriteToolTests(unittest.TestCase):
             "start_session.py",
             "finalize_session.py",
             "verify_session.py",
+            "reclassify_legacy.py",
         ):
             with self.subTest(name=name):
                 contents = (project_root / "Tools" / "AI" / "jira" / name).read_text(

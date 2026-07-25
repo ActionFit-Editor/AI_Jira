@@ -61,6 +61,9 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py verify inspect MCC-1234 --json
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py verify preflight MCC-1234 --json
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py verify finalize MCC-1234 --candidate-commit 0123456789abcdef0123456789abcdef01234567 --result-file verification-result.json --json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py reclassify-legacy inspect MCC-1234 --expected-updated "<JIRA-UPDATED>" --review-file legacy-review.json --verification-plan-file verification-plan.json --qa-file qa.json --json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py reclassify-legacy preflight MCC-1234 --expected-updated "<JIRA-UPDATED>" --review-file legacy-review.json --verification-plan-file verification-plan.json --qa-file qa.json --json
+python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py reclassify-legacy apply MCC-1234 --expected-updated "<JIRA-UPDATED>" --review-file legacy-review.json --verification-plan-file verification-plan.json --qa-file qa.json --json
 python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 --outcome incomplete --completed-work "분석 완료" --remaining-work "구현 및 검증" --branch-pr "MCC-1234-work / PR 없음" --validation "미실행" --blocker-approval "승인 대기" --resume-condition "승인 후 구현 재개"
 ```
 
@@ -72,6 +75,7 @@ python3 .agents/skills/jira-help/scripts/ai_jira_write_cli.py finalize MCC-1234 
 - `transition --list`: read-only; list transitions currently available for the issue.
 - `finalize`: write; complete implementation only after the matching review. Extended mode also requires `--verification-plan-file`, pins PR/branch/commit, and selects automatic-validation, manual-validation, or verified; legacy mode keeps configured done. `incomplete` verifies one Korean handoff, closes any active baseline, and returns to configured todo.
 - `verify`: inspect/preflight are read-only; finalize writes evidence for one pinned automatic-validation issue and advances to manual/verified, returns a related defect to todo, or preserves the automatic queue for environment, approval, or stale-candidate blockers.
+- `reclassify-legacy`: inspect/preflight are read-only; apply writes one explicitly named assigned unresolved todo into automatic-validation or manual-validation only after exact requirement coverage, pinned candidate, pending verification plan, Korean QA, transition, property-size, and write-gate checks. It never discovers or bulk-migrates todo issues and never selects verified. Exact unchanged migrations may be rolled back with the recorded migration ID and current `updated` value.
 - Recommend each command's `--help` for exact flags in the installed version.
 
 ## Configuration And Safety
