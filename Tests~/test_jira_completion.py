@@ -12,9 +12,13 @@ sys.path.insert(0, str(TOOLS_DIR))
 
 from jira_completion import (
     COMPLETION_PROPERTY_KEY,
+    DEVELOPMENT_COMPLETE_PROPERTY_STATES,
+    MAX_PROPERTY_BYTES,
     build_active_property,
     build_planning_property,
     extract_snapshot,
+    property_size,
+    require_property_size,
     validate_completion_gate,
     validate_plan_coverage,
     with_state,
@@ -460,6 +464,290 @@ class JiraCompletionTests(unittest.TestCase):
         coverage["approvalSummary"] = "User separately approved deferring every non-export requirement."
         target = validate_plan_coverage(planning, narrowed, coverage)
         self.assertGreater(len(target["requirements"]), 0)
+
+
+class SealedSnapshotPayloadTests(unittest.TestCase):
+    # Digest produced by the implementation that still stored section prose. Pinning it proves the
+    # seal is unchanged for existing issues, so in-flight baselines keep matching their description.
+    MANAGED_DESCRIPTION_DIGEST = (
+        "sha256:055e534a49d0f6acf94a3fff9969c492e429ae79eafb51eafc22cb0d1baa49b6"
+    )
+
+    def legacy_snapshot(self, description: str) -> dict:
+        """Reproduce the stored shape written before section prose was dropped."""
+        snapshot = extract_snapshot(description)
+        sections = [{"heading": "Goal", "body": "Prose an earlier version persisted."}]
+        return {**snapshot, "sections": sections}
+
+    def test_snapshot_keeps_digest_and_requirements_without_storing_prose(self) -> None:
+        description = managed_description(scope="Seal a uniquely traceable scope sentence.")
+
+        snapshot = extract_snapshot(description)
+
+        self.assertEqual({"descriptionDigest", "requirements"}, set(snapshot))
+        self.assertGreater(len(snapshot["requirements"]), 0)
+        serialized = json.dumps(snapshot, ensure_ascii=False)
+        self.assertNotIn("Out of Scope", serialized)
+        self.assertNotIn("Dependencies and Risks", serialized)
+
+    def test_digest_matches_the_implementation_that_stored_prose(self) -> None:
+        self.assertEqual(
+            self.MANAGED_DESCRIPTION_DIGEST,
+            extract_snapshot(managed_description())["descriptionDigest"],
+        )
+
+    def test_digest_still_detects_prose_changed_outside_requirement_items(self) -> None:
+        baseline = extract_snapshot(managed_description())
+        reworded = managed_description(goal="Protect Jira completion with a reworded goal.")
+
+        self.assertNotEqual(
+            baseline["descriptionDigest"], extract_snapshot(reworded)["descriptionDigest"]
+        )
+
+    def test_carry_forward_drops_legacy_prose_and_preserves_the_seal(self) -> None:
+        description = managed_description()
+        stored = {
+            "version": 1,
+            "issueKey": "MCC-1672",
+            "state": "closed-incomplete",
+            "preRefinement": self.legacy_snapshot(description),
+        }
+
+        prepared = build_active_property(
+            "MCC-1672",
+            description,
+            "2026-07-26T10:00:00.000+0900",
+            session_id="session-1672",
+            branch="MCC-1672-drop-sealed-snapshot-sections",
+            previous=stored,
+        )
+
+        carried = prepared["preRefinement"]
+        self.assertNotIn("sections", carried)
+        self.assertEqual(stored["preRefinement"]["descriptionDigest"], carried["descriptionDigest"])
+        self.assertEqual(stored["preRefinement"]["requirements"], carried["requirements"])
+        self.assertIn("sections", stored["preRefinement"])
+
+    def test_carry_forward_also_drops_prose_from_an_approved_plan(self) -> None:
+        description = managed_description()
+        stored = {
+            "version": 1,
+            "issueKey": "MCC-1672",
+            "state": "planned",
+            "approvedPlan": {"preRefinement": self.legacy_snapshot(description)},
+        }
+
+        prepared = build_active_property(
+            "MCC-1672",
+            description,
+            "2026-07-26T10:00:00.000+0900",
+            session_id="session-1672",
+            branch="MCC-1672-drop-sealed-snapshot-sections",
+            previous=stored,
+        )
+
+        self.assertNotIn("sections", prepared["preRefinement"])
+
+    def test_legacy_prose_snapshot_still_validates_plan_coverage(self) -> None:
+        planning = build_planning_property(
+            "MCC-1672",
+            managed_description(),
+            "2026-07-26T09:00:00.000+0900",
+            planning_id="planning-1672",
+        )
+        planning["preRefinement"] = self.legacy_snapshot(managed_description())
+        clarified = managed_description(scope="Seal every requirement with explicit evidence.")
+        coverage = {
+            "version": 1,
+            "requirements": [
+                {
+                    "sourceId": item["id"],
+                    "disposition": "clarified" if "Seal every requirement" in item["text"] else "retained",
+                    "targetIds": [],
+                }
+                for item in planning["preRefinement"]["requirements"]
+            ],
+        }
+        target_ids = {item["id"] for item in extract_snapshot(clarified)["requirements"]}
+        for entry in coverage["requirements"]:
+            if entry["disposition"] == "retained":
+                entry["targetIds"] = [entry["sourceId"]]
+            else:
+                entry["targetIds"] = sorted(
+                    target_ids - {item["id"] for item in planning["preRefinement"]["requirements"]}
+                )
+
+        approved = validate_plan_coverage(planning, clarified, coverage)
+
+        self.assertNotIn("sections", approved)
+        self.assertGreater(len(approved["requirements"]), 0)
+
+    def test_long_description_start_stays_within_the_property_limit(self) -> None:
+        long_scope = " ".join(
+            f"Deliver bounded capability number {index} with explicit verifiable evidence."
+            for index in range(120)
+        )
+        description = managed_description(scope=long_scope)
+        stored = {
+            "version": 1,
+            "issueKey": "MCC-1672",
+            "state": "closed-incomplete",
+            "preRefinement": self.legacy_snapshot(description),
+        }
+
+        prepared = build_active_property(
+            "MCC-1672",
+            description,
+            "2026-07-26T10:00:00.000+0900",
+            session_id="session-1672",
+            branch="MCC-1672-drop-sealed-snapshot-sections",
+            previous=stored,
+        )
+
+        self.assertLessEqual(property_size(prepared), MAX_PROPERTY_BYTES)
+        self.assertNotIn("sections", prepared["baseline"])
+        self.assertNotIn("sections", prepared["preRefinement"])
+
+    def test_property_limit_still_rejects_an_oversized_payload(self) -> None:
+        oversized = {
+            "version": 1,
+            "issueKey": "MCC-1672",
+            "state": "active",
+            "baseline": {
+                "descriptionDigest": "sha256:test",
+                "requirements": [
+                    {"id": f"REQ-{index:012X}", "section": "Scope", "text": "x" * 200}
+                    for index in range(400)
+                ],
+            },
+        }
+
+        self.assertGreater(property_size(oversized), MAX_PROPERTY_BYTES)
+        with self.assertRaisesRegex(SystemExit, "Shorten the managed Jira description"):
+            require_property_size(oversized)
+
+
+class DevelopmentCompletePayloadTests(unittest.TestCase):
+    """The completion property must not keep artifacts that no reader consumes."""
+
+    def active_property(self, description: str) -> dict:
+        prepared = build_active_property(
+            "MCC-1674",
+            description,
+            "2026-07-26T10:00:00.000+0900",
+            session_id="session-1674",
+            branch="MCC-1674-drop-prerefinement-at-completion",
+            previous={
+                "version": 1,
+                "issueKey": "MCC-1674",
+                "state": "closed-incomplete",
+                "preRefinement": extract_snapshot(managed_description(goal="Original goal.")),
+            },
+        )
+        self.assertIn("preRefinement", prepared, "the active property still needs the snapshot")
+        return prepared
+
+    def test_every_development_complete_state_drops_the_pre_refinement_snapshot(self) -> None:
+        active = with_state(self.active_property(completed_description()), "active")
+
+        for state in sorted(DEVELOPMENT_COMPLETE_PROPERTY_STATES):
+            with self.subTest(state=state):
+                self.assertNotIn("preRefinement", with_state(active, state))
+
+    def test_pre_completion_states_keep_the_snapshot(self) -> None:
+        active = self.active_property(completed_description())
+
+        for state in ("active", "planning", "closed-incomplete"):
+            with self.subTest(state=state):
+                self.assertIn(
+                    "preRefinement",
+                    with_state(active, state),
+                    "a pre-completion state still has readers for the snapshot",
+                )
+
+    def test_plan_coverage_still_reads_the_snapshot(self) -> None:
+        planning = build_planning_property(
+            "MCC-1674",
+            managed_description(),
+            "2026-07-26T09:00:00.000+0900",
+            planning_id="planning-1674",
+        )
+        clarified = managed_description(scope="Seal every requirement with explicit evidence.")
+        source_ids = [item["id"] for item in planning["preRefinement"]["requirements"]]
+        target_ids = {item["id"] for item in extract_snapshot(clarified)["requirements"]}
+        coverage = {
+            "version": 1,
+            "requirements": [
+                {"sourceId": i, "disposition": "retained", "targetIds": [i]}
+                if i in target_ids
+                else {"sourceId": i, "disposition": "clarified",
+                      "targetIds": sorted(target_ids - set(source_ids))}
+                for i in source_ids
+            ],
+        }
+
+        approved = validate_plan_coverage(planning, clarified, coverage)
+
+        self.assertGreater(len(approved["requirements"]), 0)
+
+    def test_a_large_issue_now_fits_the_property_limit_at_completion(self) -> None:
+        # managed_description renders the scope as bullets, so join with a bullet prefix to
+        # produce a genuinely large requirement set rather than one long sentence.
+        long_scope = "\n- ".join(
+            f"Deliver bounded capability number {index} with explicit verifiable evidence."
+            for index in range(60)
+        )
+        description = prepend_qa_record(
+            managed_description(scope=long_scope),
+            "MCC-1674",
+            "2026-07-26",
+            """- 변경 요약: 큰 이슈 픽스처
+- 검증 결과: Python 테스트 통과
+- 미검증 항목: 없음
+- QA 확인 항목: 없음
+- 위험 영역: 없음""",
+        )
+        active = with_state(self.active_property(description), "active")
+        requirements = active["baseline"]["requirements"]
+        review = {
+            "version": 1,
+            "issueKey": "MCC-1674",
+            "sessionId": "session-1674",
+            "baselineDigest": active["baseline"]["descriptionDigest"],
+            "prUrl": "https://github.com/ActionFitGames/Cat_Merge_Cafe/pull/1",
+            "requirements": [
+                {"id": item["id"], "status": "complete", "evidence": ["test:pass"]}
+                for item in requirements
+            ],
+        }
+
+        completed = with_state(
+            active,
+            "completed",
+            review=review,
+            verification={"version": 1, "issueKey": "MCC-1674", "checks": []},
+        )
+
+        self.assertGreaterEqual(len(requirements), 60, "the fixture must exercise a large issue")
+        self.assertNotIn("preRefinement", completed)
+        self.assertLessEqual(property_size(completed), MAX_PROPERTY_BYTES)
+
+    def test_the_limit_still_rejects_a_payload_that_is_genuinely_too_large(self) -> None:
+        oversized = {
+            "version": 1,
+            "issueKey": "MCC-1674",
+            "state": "active",
+            "baseline": {
+                "descriptionDigest": "sha256:test",
+                "requirements": [
+                    {"id": f"REQ-{index:012X}", "section": "Scope", "text": "x" * 200}
+                    for index in range(400)
+                ],
+            },
+        }
+
+        with self.assertRaisesRegex(SystemExit, "Shorten the managed Jira description"):
+            with_state(oversized, "completed")
 
 
 if __name__ == "__main__":

@@ -37,6 +37,13 @@ TERMINAL_PROPERTY_STATES = {
     "closed-incomplete",
     "planned",
 }
+# States the development-complete transition writes. Reaching any of them means implementation is
+# finished, so the pre-refinement snapshot is dropped from the property.
+DEVELOPMENT_COMPLETE_PROPERTY_STATES = {
+    "completed",
+    "awaiting-automatic-validation",
+    "awaiting-manual-validation",
+}
 _ITEM_PATTERN = re.compile(r"^\s*(?:[-*+]\s+|\d+[.)]\s+)(.+?)\s*$")
 _SPACE_PATTERN = re.compile(r"\s+")
 
@@ -134,9 +141,11 @@ def extract_snapshot(
             "Description contains duplicate normalized requirements; make each requirement distinct before sealing."
         )
     canonical = json.dumps(normalized_sections, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    # The digest still covers the normalized section prose, but the prose itself is not stored.
+    # Jira issue properties allow 32768 bytes and no validation path reads it back: the digest is
+    # always recomputed from the live description, and coverage/review checks use `requirements`.
     return {
         "descriptionDigest": "sha256:" + hashlib.sha256(canonical.encode("utf-8")).hexdigest(),
-        "sections": normalized_sections,
         "requirements": requirements,
     }
 
@@ -161,7 +170,7 @@ def require_property_size(value: dict[str, Any]) -> None:
     if size > MAX_PROPERTY_BYTES:
         raise SystemExit(
             f"Completion session property is {size} bytes; Jira issue properties allow at most "
-            f"{MAX_PROPERTY_BYTES} bytes. Reduce duplicated requirement prose before retrying."
+            f"{MAX_PROPERTY_BYTES} bytes. Shorten the managed Jira description before retrying."
         )
 
 
@@ -188,6 +197,14 @@ def _require_requirement_ids(items: Any, label: str) -> set[str]:
     if len(ids) != len(set(ids)):
         raise SystemExit(f"{label} contains duplicate requirement IDs.")
     return set(ids)
+
+
+def carry_snapshot(snapshot: Any) -> Any:
+    """Copy a stored snapshot forward without the section prose earlier versions persisted."""
+    copied = deepcopy(snapshot)
+    if isinstance(copied, dict):
+        copied.pop("sections", None)
+    return copied
 
 
 def build_planning_property(
@@ -243,9 +260,9 @@ def build_active_property(
         "updatedAt": now,
     }
     if previous and previous.get("preRefinement"):
-        value["preRefinement"] = deepcopy(previous["preRefinement"])
+        value["preRefinement"] = carry_snapshot(previous["preRefinement"])
     elif previous and previous.get("approvedPlan", {}).get("preRefinement"):
-        value["preRefinement"] = deepcopy(previous["approvedPlan"]["preRefinement"])
+        value["preRefinement"] = carry_snapshot(previous["approvedPlan"]["preRefinement"])
     require_property_size(value)
     return value
 
@@ -255,6 +272,14 @@ def with_state(value: dict[str, Any], state: str, **fields: Any) -> dict[str, An
     updated["state"] = state
     updated["updatedAt"] = utc_timestamp()
     updated.update(fields)
+
+    # A development-complete property already carries the baseline, the completion review, and the
+    # versioned verification plan. The pre-refinement snapshot has no reader left at that point —
+    # validate_plan_coverage and require_approved_plan_match both run before completion — so keeping
+    # it only consumes the 32768-byte budget and pushes a large issue over the limit.
+    if state in DEVELOPMENT_COMPLETE_PROPERTY_STATES:
+        updated.pop("preRefinement", None)
+
     require_property_size(updated)
     return updated
 

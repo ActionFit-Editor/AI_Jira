@@ -13,7 +13,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.4"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.6"
   }
 }
 ```
