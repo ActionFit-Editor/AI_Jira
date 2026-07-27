@@ -1,9 +1,11 @@
 ---
 name: jira-plan
-description: Create an explicitly approved title-only needs-plan intake, or collaboratively resolve material implementation decisions and create or safely refine one planned Jira todo without implementing it.
+description: Compatibility-only Jira planning for an explicitly approved title-only intake or an existing Jira needs-plan issue. Use AI Plan for new planning unless the user explicitly requires Jira-backed planning.
 ---
 
 # Jira Plan
+
+This is a deprecated compatibility path. For new planning, route to `$plan-create`. Continue here only when the user explicitly requires a Jira issue as the planning store, requests title-only Jira intake, or selects an existing Jira needs-plan issue whose managed-description and baseline contracts must be preserved.
 
 Capture one explicitly requested title-only needs-plan intake, turn a new idea into one approved planned Jira todo issue, or refine one explicitly selected todo issue under a transient approved write lock. Do not implement the work in this skill or end a normal invocation with the issue in progress.
 

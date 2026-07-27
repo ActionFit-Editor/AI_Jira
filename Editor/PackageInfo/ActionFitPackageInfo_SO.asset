@@ -18,22 +18,12 @@ MonoBehaviour:
   _repositoryVisibility: 0
   _owner: "\uC1A1\uC81C\uC6B0"
   _status: verified
-  _description: ActionFit AI agents use this package for Jira planning, work discovery,
-    automatic bounded task pickup, lifecycle guidance, and safe automation.
-  _releaseNote: "- \uC644\uB8CC \uC804\uC774\uAC00 \uC4F0\uB294 \uD504\uB85C\uD37C\uD2F0\uC5D0\uC11C
-    \uAC1C\uC815 \uC804 \uC2A4\uB0C5\uC0F7(preRefinement)\uC744 \uC81C\uAC70\uD588\uC2B5\uB2C8\uB2E4.
-    \uC644\uB8CC \uC2DC\uC810\uC5D4 \uC774\uB97C \uC77D\uB294 \uCF54\uB4DC\uAC00
-    \uC5C6\uACE0 32768\uBC14\uC774\uD2B8 \uC608\uC0B0\uB9CC \uC18C\uBAA8\uD569\uB2C8\uB2E4.\n-
-    \uB300\uC0C1 \uC0C1\uD0DC\uB294 completed, awaiting-automatic-validation, awaiting-manual-validation
-    \uC138 \uAC00\uC9C0\uC785\uB2C8\uB2E4.\n- \uC644\uB8CC \uC774\uC804 \uACBD\uB85C\uB294
-    \uADF8\uB300\uB85C\uC785\uB2C8\uB2E4. validate_plan_coverage \uC758 replace-plan
-    \uACFC planned \uC0C1\uD0DC start \uB294 \uACC4\uC18D \uC2A4\uB0C5\uC0F7\uC744
-    \uC77D\uC2B5\uB2C8\uB2E4.\n- \uC694\uAD6C\uC0AC\uD56D 62\uAC74 \uADDC\uBAA8 \uC774\uC288\uC758
-    \uC644\uB8CC \uD504\uB85C\uD37C\uD2F0\uAC00 \uC57D 11000\uBC14\uC774\uD2B8 \uC904\uC5B4\uB4ED\uB2C8\uB2E4.\n-
-    AI_GUIDE \uC758 'replace-plan \uC774 \uAC00\uC7A5 \uBE61\uBE61\uD55C \uACBD\uB85C'
-    \uC11C\uC220\uC744 \uC815\uC815\uD588\uC2B5\uB2C8\uB2E4. \uC694\uAD6C\uC0AC\uD56D\uC774
-    \uB9CE\uC73C\uBA74 finalize \uAC00 \uB354 \uBE61\uBE61\uD569\uB2C8\uB2E4.\n-
-    \uC9D1\uC911 \uD14C\uC2A4\uD2B8 5\uAC74\uC744 \uCD94\uAC00\uD588\uC2B5\uB2C8\uB2E4.\n-
-    \uC2E4\uC81C publish \uB294 \uBCC4\uB3C4 \uC2B9\uC778\uC744 \uAC70\uCCD0 Custom
-    Package Manager \uC5D0\uC11C \uC218\uD589\uD569\uB2C8\uB2E4."
+  _description: ActionFit AI agents use this package for Jira compatibility planning,
+    work discovery, automatic bounded task pickup, lifecycle guidance, and safe automation.
+  _releaseNote: "\uC0C8 \uC791\uC5C5 \uACC4\uD68D\uC758 \uAE30\uBCF8 \uD750\uB984\uC744
+    AI Plan\uC73C\uB85C \uC804\uD658\uD588\uC2B5\uB2C8\uB2E4. \uAE30\uC874 Jira \uACC4\uD68D
+    \uAE30\uB2A5\uC740 \uD638\uD658 \uC6A9\uB3C4\uB85C \uC720\uC9C0\uD558\uBA70 \uAE30\uC900\uC120,
+    \uC2A4\uD0AC, \uAD00\uB9AC \uC124\uBA85\uACFC \uC644\uB8CC \uAE30\uB85D\uB3C4
+    \uACC4\uC18D \uC9C0\uC6D0\uD569\uB2C8\uB2E4. \uD328\uD0A4\uC9C0 \uBC30\uD3EC\uB294
+    \uBCC4\uB3C4 \uC2B9\uC778\uC774 \uD544\uC694\uD569\uB2C8\uB2E4."
   _dependenciesOverride: com.actionfit.ai-jira.core@0.1.0;com.actionfit.ai-workagent@0.2.2;com.actionfit.custompackagemanager@2.0.1

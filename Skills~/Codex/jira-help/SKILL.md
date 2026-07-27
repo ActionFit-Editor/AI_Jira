@@ -7,6 +7,8 @@ description: Explain the AI Jira package, its installed related skills, package-
 
 Provide a concise help response in the user's language. Default to Korean for a Korean request. Do not query Jira or change Jira, Git, or project state unless the user separately requests an operation.
 
+Explain early that `$plan-create` is the default for new planning. `$jira-plan` is a deprecated compatibility path for explicit Jira-backed planning, title-only Jira intake, and existing needs-plan/baseline consumers. Optional Plan QA publication belongs to `$plan-jira-preview` and separately approved `$plan-jira-publish`.
+
 ## Required Inventory
 
 Read `PACKAGE_SKILLS.md` in this installed skill directory before answering. It is generated from the package identity, schema v2 manifest, and each agent-specific `SKILL.md` frontmatter. Treat its package summary, complete related-skill list, `$name` invocations, descriptions, and access boundaries as authoritative. If it is missing, explain that `Install or Refresh Agent Skills` must be run instead of reconstructing a potentially stale list.

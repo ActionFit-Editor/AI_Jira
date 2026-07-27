@@ -1,5 +1,7 @@
 # AI Jira (com.actionfit.ai-jira)
 
+> 새 계획의 기본 경로는 `com.actionfit.ai-plan`입니다. `jira-plan`은 기존 Jira issue와 active baseline을 깨지 않기 위한 단계적 호환 경로이며, Jira 자체가 계획 원본이어야 하는 기존 호출에만 사용합니다. Plan 결과를 QA에 전달할 때는 `com.actionfit.ai-plan.jira`의 별도 preview/publish 흐름을 사용합니다.
+
 ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목 검색, 범위가 제한된 자동 작업 선택, Jira lifecycle 가이드와 안전한 local 자동화에 사용하는 패키지입니다.
 
 ## 현재 범위
@@ -13,7 +15,7 @@ ActionFit AI agent가 프로젝트 로컬 Jira plan, 읽기 전용 작업 항목
 ```json
 {
   "dependencies": {
-    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.6"
+    "com.actionfit.ai-jira": "https://github.com/ActionFit-Editor/AI_Jira.git#2.0.7"
   }
 }
 ```
@@ -35,7 +37,7 @@ Installer는 AI Jira package metadata, manifest와 agent별 `SKILL.md` descripti
 
 `jira-help`는 Jira 작업을 실행하지 않고 생성 inventory, read-only/write-capable 명령군, 설정, safety gate와 Unity 메뉴를 설명합니다. `jira-todo`는 할당된 미해결 `todo`와 `progress` issue를 별도로 조회합니다. 새 작업 후보는 `todo` issue뿐입니다. Progress issue는 branch, pull request, worktree, lease 및 Unity process 증거에 따라 `active`, `reserved`, `stranded-review`로 보고하지만 추천 순서에서는 제외합니다. Acquisition PID 생존 여부만으로 lease를 오래됐다고 판단하지 않으며 triage가 lease를 해제하거나 가져가지 않습니다.
 
-`jira-plan`은 명시적으로 요청된 제목 전용 needs-plan을 나중에 계획할 `todo`로 접수하거나, 개발 아이디어를 조사하고 논의하며 canonical 혼합 언어 Jira 저장 draft를 준비한 뒤 `todo` issue 하나를 생성하기 전에 완전한 한국어 승인 view를 만듭니다. 제목 전용 접수는 정확한 한국어 제목 승인 후 설명 없이 생성하며 일반 planning 결정을 우회하는 fallback으로 사용하지 않습니다. 기존 needs-plan 논의와 승인 대기도 todo에 유지합니다. 승인된 managed-plan 쓰기에서만 짧고 검증된 progress lock을 사용하고 plan-only 작업은 응답 전에 todo로 돌아갑니다. `jira-auto-start`는 할당된 모든 미해결 todo를 분류하고 시작 가능한 첫 항목을 실행하며, 시작 가능한 항목이 없을 때만 첫 needs-plan 항목의 refinement를 제안합니다. 일반 prerequisite는 legacy done과 세 development-complete 상태를 모두 허용하고, `MCC-1234 [verified]`는 정확한 verified 상태를 요구합니다. `jira-auto-verify`는 명시적인 요청이 있을 때만 자동 검증 대기열 또는 선택 key를 한 session에서 순차 처리합니다. 민감·파괴적·publish·deployment·production·credential 작업은 별도 승인을 유지합니다. `jira-run`도 명시적으로 선택한 issue를 같은 승인 protocol로 처리합니다.
+`jira-plan`은 호환 전용입니다. 명시적으로 요청된 제목 전용 needs-plan을 나중에 계획할 `todo`로 접수하거나, 기존 Jira 기반 소비자를 위해 canonical 혼합 언어 Jira 저장 draft를 만들 때만 사용합니다. 새 계획은 `$plan-create`를 사용합니다. 호환 경로의 제목 전용 접수는 정확한 한국어 제목 승인 후 설명 없이 생성하며 일반 planning 결정을 우회하는 fallback으로 사용하지 않습니다. 기존 needs-plan 논의와 승인 대기도 todo에 유지합니다. 승인된 managed-plan 쓰기에서만 짧고 검증된 progress lock을 사용하고 plan-only 작업은 응답 전에 todo로 돌아갑니다. `jira-auto-start`는 할당된 모든 미해결 todo를 분류하고 시작 가능한 첫 항목을 실행하며, 시작 가능한 항목이 없을 때만 첫 needs-plan 항목의 refinement를 제안합니다. 일반 prerequisite는 legacy done과 세 development-complete 상태를 모두 허용하고, `MCC-1234 [verified]`는 정확한 verified 상태를 요구합니다. `jira-auto-verify`는 명시적인 요청이 있을 때만 자동 검증 대기열 또는 선택 key를 한 session에서 순차 처리합니다. 민감·파괴적·publish·deployment·production·credential 작업은 별도 승인을 유지합니다. `jira-run`도 명시적으로 선택한 issue를 같은 승인 protocol로 처리합니다.
 
 `jira-plan`, `jira-auto-start`, `jira-run`의 planning 경로는 `Skills~/Shared/references/planning-decision-collaboration.md`를 공유합니다. 사용자 요구, 저장소/API-owner 지침, 패키지 가이드, 일관된 기존 패턴 순으로 한 가지 방식을 결정할 수 있으면 불필요한 질문을 하지 않습니다. 반대로 컨벤션으로 결정되지 않는 합리적인 방식이 여러 개면 한 회차에 연관 질문 1~3개를 제시하고, 각 선택지의 차이·장점·단점을 같은 기준으로 설명한 뒤 추천안과 근거를 안내합니다. 답변 뒤에는 전체 범위를 다시 탐색합니다. 미해결 결정이 있는 동안에는 approval-ready plan을 만들지 않으며, 확정 결정·적용 컨벤션·에이전트 가정 요약에 대한 종료 확인 뒤에만 canonical draft를 준비합니다. 추천 위임은 기본적으로 현재 질문 묶음에만 적용되고, 명시적인 광범위 위임도 현재 planning invocation에서 끝납니다.
 

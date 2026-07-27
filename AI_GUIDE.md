@@ -7,12 +7,14 @@ This file is shipped inside the UPM package so an AI assistant in a consuming Un
 - Package ID: `com.actionfit.ai-jira`
 - Display name: AI Jira
 - Repository: `https://github.com/ActionFit-Editor/AI_Jira.git`
-- Current package version at generation time: `2.0.6`
+- Current package version at generation time: `2.0.7`
 - Unity version: `6000.2`
 
 ## Purpose
 
-AI Jira provides project-local Codex and Claude help, triage, planning, automatic bounded pickup, and authorization-gated run skills; a read-only work-item API/CLI; package-owned write clients; and Jira automation guidance for AI agents: safe issue creation, task discovery, sealed requirement baselines, exact plan coverage, evidence-backed terminal session finalization, mixed-language managed descriptions, transient planning locks, bounded description updates, and local secret configuration.
+AI Jira provides project-local Codex and Claude help, triage, compatibility planning, automatic bounded pickup, and authorization-gated run skills; a read-only work-item API/CLI; package-owned write clients; and Jira automation guidance for AI agents: safe issue creation, task discovery, sealed requirement baselines, exact plan coverage, evidence-backed terminal session finalization, mixed-language managed descriptions, transient planning locks, bounded description updates, and local secret configuration.
+
+New planning defaults to `com.actionfit.ai-plan`. `jira-plan` remains a deprecated compatibility path for existing Jira-backed consumers, title-only Jira intake, needs-plan refinement, active baselines, and current managed-description contracts during the staged migration. Do not remove or rewrite those contracts in this release. Optional Plan-to-Jira QA projection belongs to `com.actionfit.ai-plan.jira`, which depends on Jira Core rather than this facade.
 
 AI Jira directly depends on `com.actionfit.ai-workagent` and consumes its risk-proportional execution contract. WorkAgent owns task classes, soft budgets, delegation boundaries, existing-failure handling, and Unity evidence levels; AI Jira maps them into the existing managed `Validation Plan` without changing Jira lifecycle or adding a second orchestration standard.
 
